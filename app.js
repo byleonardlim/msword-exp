@@ -1,703 +1,360 @@
-Office.onReady(function(info) {
+// Office.js initialization
+Office.onReady((info) => {
     if (info.host === Office.HostType.Word) {
         // Initialize event handlers
-        document.getElementById("insert-content-control").onclick = insertContentControlAroundSelection;
-        document.getElementById("add-critique").onclick = addCritiqueToSelection;
-        document.getElementById("wrap-paragraphs").onclick = wrapParagraphsInContentControls;
-        document.getElementById("wrap-by-headings").onclick = wrapContentByHeadings;
-        document.getElementById("highlight-controls").onclick = highlightAllContentControls;
-        document.getElementById("list-controls").onclick = listAllContentControls;
+        document.getElementById('saveApiKey').onclick = saveApiKey;
+        document.getElementById('suggestChanges').onclick = suggestChanges;
+        document.getElementById('fixGrammar').onclick = fixGrammar;
+        document.getElementById('summarizeSelection').onclick = summarizeSelection;
         
-        // Set up document selection change event
-        Office.context.document.addHandlerAsync(Office.EventType.DocumentSelectionChanged, updateSelectedText);
+        // Load API key if saved
+        loadApiKey();
         
-        // Initial critique count
-        window.critiqueCount = 0;
-        window.critiques = [];
+        // Load document structure
+        loadDocumentStructure();
         
-        // Initial call to update the task pane
-        updateSelectedText();
-        updateCritiqueSummary();
+        // Enable live suggestions as user types
+        setupLiveSuggestions();
     }
 });
 
-// Track selected text and display it in the task pane with enhanced highlighting
-function updateSelectedText() {
-    Word.run(async function(context) {
-        // Get the current selection
-        const selection = context.document.getSelection();
-        selection.load("text");
-        
-        await context.sync();
-        
-        // Update the task pane with the selected text
-        const selectedTextElement = document.getElementById("selected-text");
-        if (selection.text.trim() === "") {
-            selectedTextElement.innerHTML = "<p>No text currently selected. Highlight text in the document to see it here.</p>";
-        } else {
-            // Truncate very long selections for display
-            let displayText = selection.text;
-            if (displayText.length > 300) {
-                displayText = displayText.substring(0, 300) + "...";
-            }
-            
-            // Show highlighted text with prominent styling and edit button
-            selectedTextElement.innerHTML = `
-                <div class="highlighted-container">
-                    <p class="selected-content">${escapeHtml(displayText)}</p>
-                    <div class="highlight-actions">
-                        <button id="quick-wrap-button" class="highlight-action-button">Wrap for Editing</button>
-                    </div>
-                </div>
-            `;
-            
-            // Add event listener to the quick wrap button
-            document.getElementById("quick-wrap-button").addEventListener("click", function() {
-                wrapSelectionForEditing();
-            });
-        }
-    }).catch(function(error) {
-        console.log("Error: " + error);
-        selectedTextElement.innerHTML = `<p class='error'>Error displaying selection: ${error.message}</p>`;
-    });
-}
-
-// Helper function to safely display text in HTML
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-// Insert a content control around the current selection
-function insertContentControlAroundSelection() {
-    Word.run(async function(context) {
-        // Get the current selection
-        const range = context.document.getSelection();
-        range.load("text");
-        
-        await context.sync();
-        
-        // Check if there is text selected
-        if (range.text.trim() === "") {
-            document.getElementById("selected-text").innerHTML = 
-                "<p class='error'>Please select some text first.</p>";
-            return;
-        }
-        
-        // Create a content control around the selection
-        const contentControl = range.insertContentControl();
-        
-        // Configure the content control
-        contentControl.title = "Paragraph Control";
-        contentControl.tag = "paragraph-" + new Date().getTime(); // Unique tag
-        contentControl.appearance = Word.ContentControlAppearance.boundingBox;
-        contentControl.color = "blue"; // Set the color of the content control
-        
-        await context.sync();
-        
-        document.getElementById("selected-text").innerHTML = 
-            `<p class='success'>Content control added successfully around: "${range.text.substring(0, 50)}${range.text.length > 50 ? '...' : ''}"</p>`;
-            
-        // Update the control list
-        listAllContentControls();
-    }).catch(function(error) {
-        console.log("Error: " + error);
-        document.getElementById("selected-text").innerHTML = 
-            `<p class='error'>Error adding content control: ${error.message}</p>`;
-    });
-}
-
-// Wrap the current selection for editing with better visual feedback
-function wrapSelectionForEditing() {
-    Word.run(async function(context) {
-        // Get the current selection
-        const range = context.document.getSelection();
-        range.load("text");
-        
-        await context.sync();
-        
-        // Check if there is text selected
-        if (range.text.trim() === "") {
-            document.getElementById("selected-text").innerHTML = 
-                "<p class='error'>Please select some text first.</p>";
-            return;
-        }
-        
-        // Create a content control around the selection specifically for editing
-        const contentControl = range.insertContentControl();
-        
-        // Configure the content control with edit-specific properties
-        contentControl.title = "Edit Selection";
-        contentControl.tag = "edit-" + new Date().getTime(); // Unique tag
-        contentControl.appearance = Word.ContentControlAppearance.boundingBox;
-        contentControl.color = "purple"; // Purple to indicate editing mode
-        
-        // Highlight the text for better visibility during editing
-        const contentRange = contentControl.getRange();
-        contentRange.font.highlightColor = "#E6E6FA"; // Light purple highlight
-        
-        await context.sync();
-        
-        // Create a feedback message with guidance for the user
-        const textPreview = range.text.substring(0, 50) + (range.text.length > 50 ? '...' : '');
-        
-        document.getElementById("selected-text").innerHTML = `
-            <div class="edit-feedback">
-                <p class='success'>Text wrapped and ready for editing!</p>
-                <p class="edit-preview">"${escapeHtml(textPreview)}"</p>
-                <p class="edit-instruction">You can now edit this text directly in the document. The purple box indicates the editable region.</p>
-            </div>
-        `;
-            
-        // Update the control list to show the new editable content
-        listAllContentControls();
-    }).catch(function(error) {
-        console.log("Error: " + error);
-        document.getElementById("selected-text").innerHTML = 
-            `<p class='error'>Error preparing text for editing: ${error.message}</p>`;
-    });
-}
-
-// Add a critique to the selected text
-function addCritiqueToSelection() {
-    Word.run(async function(context) {
-        // Get the current selection
-        const range = context.document.getSelection();
-        range.load("text");
-        
-        await context.sync();
-        
-        // Check if there is text selected
-        if (range.text.trim() === "") {
-            document.getElementById("selected-text").innerHTML = 
-                "<p class='error'>Please select some text first.</p>";
-            return;
-        }
-        
-        // Create a content control around the selection
-        const contentControl = range.insertContentControl();
-        
-        // Increment critique count
-        window.critiqueCount++;
-        const critiqueId = window.critiqueCount;
-        
-        // Configure the content control
-        contentControl.title = `Critique #${critiqueId}`;
-        contentControl.tag = `critique-${critiqueId}`;
-        contentControl.appearance = Word.ContentControlAppearance.tags;
-        contentControl.color = "red"; // Set the color of the content control
-        
-        // Store the critique
-        window.critiques.push({
-            id: critiqueId,
-            text: range.text,
-            timestamp: new Date().toLocaleString()
-        });
-        
-        await context.sync();
-        
-        // Update UI
-        document.getElementById("selected-text").innerHTML = 
-            `<p class='success'>Critique #${critiqueId} added for: "${range.text.substring(0, 50)}${range.text.length > 50 ? '...' : ''}"</p>`;
-            
-        // Update critique summary and control list
-        updateCritiqueSummary();
-        listAllContentControls();
-    }).catch(function(error) {
-        console.log("Error: " + error);
-        document.getElementById("selected-text").innerHTML = 
-            `<p class='error'>Error adding critique: ${error.message}</p>`;
-    });
-}
-
-// Update the critique summary in the task pane
-function updateCritiqueSummary() {
-    const summaryElement = document.getElementById("critique-summary");
-    
-    if (window.critiques.length === 0) {
-        summaryElement.innerHTML = "<p>No critiques added yet.</p>";
-        return;
-    }
-    
-    let html = `<p class="critique-count">Total critiques: ${window.critiques.length}</p>`;
-    html += "<ul class='critique-list'>";
-    
-    window.critiques.forEach(critique => {
-        let displayText = critique.text;
-        if (displayText.length > 100) {
-            displayText = displayText.substring(0, 100) + "...";
-        }
-        
-        html += `<li class="critique-item">
-            <div class="critique-header">
-                <span class="critique-id">Critique #${critique.id}</span>
-                <span class="critique-timestamp">${critique.timestamp}</span>
-            </div>
-            <div class="critique-content">${escapeHtml(displayText)}</div>
-            <button class="goto-critique" data-id="${critique.id}">Go to this critique</button>
-        </li>`;
-    });
-    
-    html += "</ul>";
-    summaryElement.innerHTML = html;
-    
-    // Add event listeners to "Go to" buttons
-    const gotoButtons = document.getElementsByClassName("goto-critique");
-    for (let i = 0; i < gotoButtons.length; i++) {
-        gotoButtons[i].addEventListener("click", function() {
-            navigateToCritique(this.getAttribute("data-id"));
-        });
+// API Key Management using LocalStorage
+function saveApiKey() {
+    const apiKey = document.getElementById('apiKey').value;
+    if (apiKey) {
+        localStorage.setItem('openai_api_key', apiKey);
+        document.getElementById('apiKeyStatus').innerText = 'API Key saved successfully!';
+        document.getElementById('apiKeyStatus').style.color = 'green';
+    } else {
+        document.getElementById('apiKeyStatus').innerText = 'Please enter an API Key';
+        document.getElementById('apiKeyStatus').style.color = 'red';
     }
 }
 
-// Navigate to a specific critique in the document
-function navigateToCritique(id) {
-    Word.run(async function(context) {
-        // Get all content controls
-        const contentControls = context.document.contentControls;
-        contentControls.load("items");
-        contentControls.load("items/tag");
-        
-        await context.sync();
-        
-        // Find the critique content control with the matching tag
-        const tag = `critique-${id}`;
-        let found = false;
-        
-        for (let i = 0; i < contentControls.items.length; i++) {
-            if (contentControls.items[i].tag === tag) {
-                // Select this content control
-                contentControls.items[i].select();
-                found = true;
-                break;
-            }
-        }
-        
-        await context.sync();
-        
-        if (!found) {
-            document.getElementById("selected-text").innerHTML = 
-                `<p class='error'>Critique #${id} not found. It may have been removed.</p>`;
-            
-            // Remove from our list if not found in document
-            window.critiques = window.critiques.filter(critique => critique.id != id);
-            updateCritiqueSummary();
-        }
-    }).catch(function(error) {
-        console.log("Error: " + error);
-        document.getElementById("selected-text").innerHTML = 
-            `<p class='error'>Error navigating to critique: ${error.message}</p>`;
-    });
+function loadApiKey() {
+    const apiKey = localStorage.getItem('openai_api_key');
+    if (apiKey) {
+        document.getElementById('apiKey').value = apiKey;
+        document.getElementById('apiKeyStatus').innerText = 'API Key loaded from storage';
+        document.getElementById('apiKeyStatus').style.color = 'green';
+    }
 }
 
-// Wrap each paragraph in the document with a content control
-function wrapParagraphsInContentControls() {
-    Word.run(async function(context) {
-        // Get all paragraphs in the document
-        const paragraphs = context.document.body.paragraphs;
-        paragraphs.load("text");
-        paragraphs.load("style");
-        
-        await context.sync();
-        
-        let count = 0;
-        
-        // Loop through each paragraph and wrap it in a content control
-        for (let i = 0; i < paragraphs.items.length; i++) {
-            if (paragraphs.items[i].text.trim() !== "") {
-                const contentControl = paragraphs.items[i].insertContentControl();
-                contentControl.title = "Paragraph " + (i + 1);
-                contentControl.tag = "para-" + i;
-                contentControl.appearance = Word.ContentControlAppearance.boundingBox;
-                contentControl.color = "green";
-                count++;
-            }
-        }
-        
-        await context.sync();
-        
-        document.getElementById("selected-text").innerHTML = 
-            `<p class='success'>${count} paragraphs wrapped in content controls.</p>`;
-            
-        // Update the control list
-        listAllContentControls();
-    }).catch(function(error) {
-        console.log("Error: " + error);
-        document.getElementById("selected-text").innerHTML = 
-            `<p class='error'>Error wrapping paragraphs: ${error.message}</p>`;
-    });
+function getApiKey() {
+    return localStorage.getItem('openai_api_key');
 }
 
-// Detect and wrap content by heading structure
-function wrapContentByHeadings() {
-    Word.run(async function(context) {
-        // Get all paragraphs in the document
-        const paragraphs = context.document.body.paragraphs;
-        paragraphs.load("text");
-        paragraphs.load("style");
+// Document Structure Navigation
+async function loadDocumentStructure() {
+    await Word.run(async (context) => {
+        // Get all headings in the document
+        const headingsParagraphs = context.document.body.paragraphs;
+        headingsParagraphs.load('text, style');
         
         await context.sync();
         
-        let sectionCount = 0;
-        let currentHeadingIndex = -1;
-        let headingLevels = ['Heading 1', 'Heading 2', 'Heading 3', 'Heading 4', 'Heading 5', 'Heading 6'];
+        const headingsTree = document.getElementById('headingsTree');
+        headingsTree.innerHTML = '';
         
-        // First pass: identify all headings
-        const headings = [];
-        for (let i = 0; i < paragraphs.items.length; i++) {
-            const para = paragraphs.items[i];
-            const styleString = para.style;
+        // Process paragraphs to find headings
+        for (let i = 0; i < headingsParagraphs.items.length; i++) {
+            const paragraph = headingsParagraphs.items[i];
+            const style = paragraph.style;
             
-            // Check if this paragraph is a heading
-            if (headingLevels.includes(styleString)) {
-                headings.push({
-                    index: i,
-                    text: para.text,
-                    level: headingLevels.indexOf(styleString) + 1,
-                    style: styleString
-                });
-            }
-        }
-        
-        // Second pass: Create ranges from heading to the next heading or end
-        for (let i = 0; i < headings.length; i++) {
-            const currentHeading = headings[i];
-            let startParaIndex = currentHeading.index;
-            
-            // Determine where this section ends (next heading or end of document)
-            let endParaIndex;
-            if (i < headings.length - 1) {
-                endParaIndex = headings[i + 1].index - 1;
-            } else {
-                endParaIndex = paragraphs.items.length - 1;
-            }
-            
-            // If there's content between this heading and the end point
-            if (startParaIndex <= endParaIndex) {
-                // Get the range from this heading to the next heading (or end)
-                let sectionContent;
-                
-                if (startParaIndex === endParaIndex) {
-                    // Only one paragraph in this section (the heading itself)
-                    sectionContent = paragraphs.items[startParaIndex].getRange();
-                } else {
-                    // Multiple paragraphs in this section
-                    const startRange = paragraphs.items[startParaIndex].getRange();
-                    const endRange = paragraphs.items[endParaIndex].getRange();
-                    sectionContent = startRange.expandTo(endRange);
-                }
-                
-                // Create a content control for this section
-                const contentControl = sectionContent.insertContentControl();
-                
-                // Set properties based on heading level
-                contentControl.title = currentHeading.text.trim() || `Section ${i + 1}`;
-                contentControl.tag = `heading-section-${i}-level-${currentHeading.level}`;
-                
-                // Color code by heading level
-                const colors = ["#4472C4", "#ED7D31", "#A5A5A5", "#FFC000", "#5B9BD5", "#70AD47"];
-                const colorIndex = (currentHeading.level - 1) % colors.length;
-                contentControl.color = colors[colorIndex];
-                
-                // Set appearance based on heading level
-                if (currentHeading.level === 1) {
-                    contentControl.appearance = Word.ContentControlAppearance.boundingBox;
-                } else {
-                    contentControl.appearance = Word.ContentControlAppearance.tags;
-                }
-                
-                sectionCount++;
-            }
-        }
-        
-        await context.sync();
-        
-        // Update UI with results
-        if (sectionCount > 0) {
-            document.getElementById("selected-text").innerHTML = 
-                `<p class='success'>${sectionCount} sections wrapped based on headings.</p>
-                 <p>Heading 1 sections are shown with blue bounding boxes.</p>
-                 <p>Other heading levels use colored tags for easier identification.</p>`;
-        } else {
-            document.getElementById("selected-text").innerHTML = 
-                `<p class='warning'>No headings found in the document. Try applying heading styles to your titles first.</p>`;
-        }
-        
-        // Update the control list
-        listAllContentControls();
-    }).catch(function(error) {
-        console.log("Error: " + error);
-        document.getElementById("selected-text").innerHTML = 
-            `<p class='error'>Error processing document headings: ${error.message}</p>`;
-    });
-}
-
-// Highlight all content controls in the document
-function highlightAllContentControls() {
-    Word.run(async function(context) {
-        // Get all content controls in the document
-        const contentControls = context.document.contentControls;
-        contentControls.load("items");
-        
-        await context.sync();
-        
-        // Loop through each content control and highlight it
-        for (let i = 0; i < contentControls.items.length; i++) {
-            const contentControl = contentControls.items[i];
-            
-            // Get the range of the content control
-            const range = contentControl.getRange();
-            
-            // Apply highlighting
-            range.font.highlightColor = "#FFFF00"; // Yellow highlighting
-        }
-        
-        await context.sync();
-        
-        document.getElementById("selected-text").innerHTML = 
-            `<p class='success'>${contentControls.items.length} content controls highlighted.</p>`;
-    }).catch(function(error) {
-        console.log("Error: " + error);
-        document.getElementById("selected-text").innerHTML = 
-            `<p class='error'>Error highlighting content controls: ${error.message}</p>`;
-    });
-}
-
-// List all content controls in the document
-function listAllContentControls() {
-    Word.run(async function(context) {
-        // Get all content controls in the document
-        const contentControls = context.document.contentControls;
-        contentControls.load("items");
-        contentControls.load("items/tag");
-        contentControls.load("items/title");
-        contentControls.load("items/text");
-        contentControls.load("items/appearance");
-        contentControls.load("items/color");
-        
-        await context.sync();
-        
-        // Clear the previous list
-        document.getElementById("control-list").innerHTML = "";
-        
-        // Create a list of content controls
-        const listElement = document.createElement("ul");
-        listElement.className = "control-list";
-        
-        if (contentControls.items.length === 0) {
-            document.getElementById("control-list").innerHTML = "<p>No content controls found.</p>";
-        } else {
-            // Group content controls by type
-            const paragraphControls = [];
-            const critiqueControls = [];
-            const otherControls = [];
-            
-            for (let i = 0; i < contentControls.items.length; i++) {
-                const contentControl = contentControls.items[i];
-                
-                if (contentControl.tag && contentControl.tag.startsWith("critique-")) {
-                    critiqueControls.push(contentControl);
-                } else if (contentControl.tag && contentControl.tag.startsWith("para-")) {
-                    paragraphControls.push(contentControl);
-                } else {
-                    otherControls.push(contentControl);
-                }
-            }
-            
-            // Function to create list items for each control group
-            const createListItems = (controls, groupTitle) => {
-                if (controls.length === 0) return "";
-                
-                let html = `<li class="control-group"><h3>${groupTitle} (${controls.length})</h3><ul class="control-sublist">`;
-                
-                for (const control of controls) {
-                    // Truncate long text for display
-                    const displayText = control.text.length > 50 
-                        ? control.text.substring(0, 50) + "..." 
-                        : control.text;
+            // Check if paragraph is a heading (Heading 1-6)
+            if (style && style.includes('Heading')) {
+                const headingLevel = parseInt(style.replace('Heading ', ''));
+                if (!isNaN(headingLevel) && headingLevel >= 1 && headingLevel <= 6) {
+                    // Create heading item in the tree
+                    const headingItem = document.createElement('div');
+                    headingItem.className = `heading-item heading-h${headingLevel}`;
+                    headingItem.innerText = paragraph.text;
+                    headingItem.dataset.paragraphIndex = i;
                     
-                    html += `<li class="control-item">
-                        <div class="control-header">
-                            <span class="control-title">${control.title || "No title"}</span>
-                            <span class="control-tag">${control.tag || "No tag"}</span>
-                        </div>
-                        <div class="control-text">${escapeHtml(displayText)}</div>
-                        <div class="control-actions">
-                            <button class="goto-control" data-tag="${control.tag}">Go to</button>
-                            <button class="remove-control" data-tag="${control.tag}">Remove</button>
-                            <button class="edit-control" data-tag="${control.tag}">Edit</button>
-                        </div>
-                    </li>`;
+                    // Add click event to navigate to the heading
+                    headingItem.onclick = () => navigateToHeading(i);
+                    
+                    headingsTree.appendChild(headingItem);
+                }
+            }
+        }
+    }).catch(handleError);
+}
+
+async function navigateToHeading(paragraphIndex) {
+    await Word.run(async (context) => {
+        const paragraphs = context.document.body.paragraphs;
+        paragraphs.load('text');
+        
+        await context.sync();
+        
+        if (paragraphIndex < paragraphs.items.length) {
+            // Select the paragraph
+            paragraphs.items[paragraphIndex].select();
+            
+            // Find all paragraphs until the next heading or end of document
+            let endIndex = paragraphIndex + 1;
+            while (endIndex < paragraphs.items.length) {
+                const nextParagraph = paragraphs.items[endIndex];
+                const style = nextParagraph.style;
+                
+                if (style && style.includes('Heading')) {
+                    break;
                 }
                 
-                html += "</ul></li>";
-                return html;
-            };
+                endIndex++;
+            }
             
-            // Add each group to the list
-            listElement.innerHTML = 
-                createListItems(critiqueControls, "Critiques") +
-                createListItems(paragraphControls, "Paragraphs") +
-                createListItems(otherControls, "Other Controls");
-            
-            document.getElementById("control-list").appendChild(listElement);
-            
-            // Add event listeners to buttons
-            const addButtonListeners = (className, handler) => {
-                const buttons = document.getElementsByClassName(className);
-                for (let i = 0; i < buttons.length; i++) {
-                    buttons[i].addEventListener("click", function() {
-                        handler(this.getAttribute("data-tag"));
-                    });
+            // Select the range from heading to next heading (or end)
+            if (endIndex > paragraphIndex + 1) {
+                const range = paragraphs.items[paragraphIndex].getRange();
+                const rangeEnd = paragraphs.items[endIndex - 1].getRange('End');
+                
+                range.expandTo(rangeEnd);
+                range.select();
+            }
+        }
+        
+        await context.sync();
+    }).catch(handleError);
+}
+
+// OpenAI Integration
+async function callOpenAI(prompt, model = 'gpt-4-turbo') {
+    const apiKey = getApiKey();
+    if (!apiKey) {
+        document.getElementById('aiSuggestions').innerHTML = 
+            '<div class="suggestion-item">Please enter your OpenAI API Key first</div>';
+        return null;
+    }
+    
+    try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: model,
+                messages: [
+                    {
+                        role: 'system',
+                        content: 'You are an AI writing assistant helping to improve documents.'
+                    },
+                    {
+                        role: 'user',
+                        content: prompt
+                    }
+                ],
+                temperature: 0.7
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        return data.choices[0].message.content;
+    } catch (error) {
+        document.getElementById('aiSuggestions').innerHTML = 
+            `<div class="suggestion-item">Error calling OpenAI API: ${error.message}</div>`;
+        return null;
+    }
+}
+
+// AI Feature: Suggest Changes
+async function suggestChanges() {
+    await Word.run(async (context) => {
+        const selection = context.document.getSelection();
+        selection.load('text');
+        await context.sync();
+        
+        const text = selection.text;
+        if (!text || text.trim() === '') {
+            document.getElementById('aiSuggestions').innerHTML = 
+                '<div class="suggestion-item">Please select some text first</div>';
+            return;
+        }
+        
+        document.getElementById('aiSuggestions').innerHTML = 
+            '<div class="suggestion-item">Analyzing your text...</div>';
+        
+        const prompt = `The following is a section of text from a document. Please provide suggestions to improve clarity, style, and impact:
+
+${text}
+
+Please provide 3-5 specific improvements, focusing on:
+1. Clarity and conciseness
+2. Grammar and punctuation
+3. Vocabulary enhancements
+4. Structural improvements`;
+        
+        const suggestions = await callOpenAI(prompt);
+        
+        if (suggestions) {
+            // Format the suggestions
+            document.getElementById('aiSuggestions').innerHTML = 
+                `<div class="suggestion-item">${suggestions.replace(/\n/g, '<br>')}</div>
+                <button class="apply-button" id="applyChanges">Apply Suggestions</button>`;
+                
+            // Handle apply button
+            document.getElementById('applyChanges').onclick = async () => {
+                const improvedPrompt = `Please rewrite the following text, applying the improvement suggestions:
+
+Original text: ${text}
+
+Suggestions: ${suggestions}
+
+Improved version (just return the improved text without any explanations):`;
+                
+                const improvedText = await callOpenAI(improvedPrompt);
+                
+                if (improvedText) {
+                    await Word.run(async (context) => {
+                        const selection = context.document.getSelection();
+                        selection.insertText(improvedText, 'Replace');
+                        await context.sync();
+                    }).catch(handleError);
                 }
             };
-            
-            addButtonListeners("goto-control", gotoContentControl);
-            addButtonListeners("remove-control", removeContentControl);
-            addButtonListeners("edit-control", editContentControl);
         }
-        
-        await context.sync();
-    }).catch(function(error) {
-        console.log("Error: " + error);
-        document.getElementById("control-list").innerHTML = 
-            `<p class='error'>Error listing content controls: ${error.message}</p>`;
-    });
+    }).catch(handleError);
 }
 
-// Navigate to a content control
-function gotoContentControl(tag) {
-    Word.run(async function(context) {
-        // Get all content controls
-        const contentControls = context.document.contentControls;
-        contentControls.load("items");
-        contentControls.load("items/tag");
-        
+// AI Feature: Fix Grammar
+async function fixGrammar() {
+    await Word.run(async (context) => {
+        const selection = context.document.getSelection();
+        selection.load('text');
         await context.sync();
         
-        // Find the content control with the matching tag
-        let found = false;
-        for (let i = 0; i < contentControls.items.length; i++) {
-            if (contentControls.items[i].tag === tag) {
-                // Select this content control
-                contentControls.items[i].select();
-                found = true;
-                break;
-            }
+        const text = selection.text;
+        if (!text || text.trim() === '') {
+            document.getElementById('aiSuggestions').innerHTML = 
+                '<div class="suggestion-item">Please select some text first</div>';
+            return;
         }
         
-        await context.sync();
+        document.getElementById('aiSuggestions').innerHTML = 
+            '<div class="suggestion-item">Fixing grammar and spelling...</div>';
         
-        if (!found) {
-            document.getElementById("selected-text").innerHTML = 
-                `<p class='error'>Control with tag "${tag}" not found. It may have been removed.</p>`;
-            
-            // If it was a critique that's not found, remove it from our list
-            if (tag.startsWith("critique-")) {
-                const id = tag.replace("critique-", "");
-                window.critiques = window.critiques.filter(critique => critique.id != id);
-                updateCritiqueSummary();
-            }
-            
-            // Update the control list
-            listAllContentControls();
+        const prompt = `Please correct grammar, spelling, and punctuation in the following text. Return only the corrected text without any explanations:
+
+${text}`;
+        
+        const correctedText = await callOpenAI(prompt);
+        
+        if (correctedText) {
+            document.getElementById('aiSuggestions').innerHTML = 
+                `<div class="suggestion-item">Corrected text:<br><br>${correctedText.replace(/\n/g, '<br>')}</div>
+                <button class="apply-button" id="applyCorrections">Apply Corrections</button>`;
+                
+            document.getElementById('applyCorrections').onclick = async () => {
+                await Word.run(async (context) => {
+                    const selection = context.document.getSelection();
+                    selection.insertText(correctedText, 'Replace');
+                    await context.sync();
+                }).catch(handleError);
+            };
         }
-    }).catch(function(error) {
-        console.log("Error: " + error);
-        document.getElementById("selected-text").innerHTML = 
-            `<p class='error'>Error navigating to content control: ${error.message}</p>`;
-    });
+    }).catch(handleError);
 }
 
-// Remove a content control by tag
-function removeContentControl(tag) {
-    Word.run(async function(context) {
-        // Get all content controls in the document
-        const contentControls = context.document.contentControls;
-        contentControls.load("items");
-        contentControls.load("items/tag");
-        
+// AI Feature: Summarize Selection
+async function summarizeSelection() {
+    await Word.run(async (context) => {
+        const selection = context.document.getSelection();
+        selection.load('text');
         await context.sync();
         
-        // Find the content control with the matching tag
-        let found = false;
-        for (let i = 0; i < contentControls.items.length; i++) {
-            if (contentControls.items[i].tag === tag) {
-                // Remove the content control but keep its content
-                contentControls.items[i].delete(true);
-                found = true;
-                break;
-            }
+        const text = selection.text;
+        if (!text || text.trim() === '') {
+            document.getElementById('aiSuggestions').innerHTML = 
+                '<div class="suggestion-item">Please select some text first</div>';
+            return;
         }
         
-        await context.sync();
+        document.getElementById('aiSuggestions').innerHTML = 
+            '<div class="suggestion-item">Generating summary...</div>';
         
-        if (found) {
-            document.getElementById("selected-text").innerHTML = 
-                `<p class='success'>Content control with tag "${tag}" removed.</p>`;
+        const prompt = `Please summarize the following text in 2-3 concise sentences, capturing the main points:
+
+${text}`;
+        
+        const summary = await callOpenAI(prompt);
+        
+        if (summary) {
+            document.getElementById('aiSuggestions').innerHTML = 
+                `<div class="suggestion-item">Summary:<br><br>${summary.replace(/\n/g, '<br>')}</div>
+                <button class="apply-button" id="insertSummary">Insert Summary</button>`;
                 
-            // If it was a critique that was removed, update our list
-            if (tag.startsWith("critique-")) {
-                const id = tag.replace("critique-", "");
-                window.critiques = window.critiques.filter(critique => critique.id != id);
-                updateCritiqueSummary();
-            }
-            
-            // Update the control list
-            listAllContentControls();
-        } else {
-            document.getElementById("selected-text").innerHTML = 
-                `<p class='error'>Control with tag "${tag}" not found.</p>`;
+            document.getElementById('insertSummary').onclick = async () => {
+                await Word.run(async (context) => {
+                    // Insert summary as a comment
+                    const selection = context.document.getSelection();
+                    selection.insertComment(summary);
+                    await context.sync();
+                }).catch(handleError);
+            };
         }
-    }).catch(function(error) {
-        console.log("Error: " + error);
-        document.getElementById("selected-text").innerHTML = 
-            `<p class='error'>Error removing content control: ${error.message}</p>`;
-    });
+    }).catch(handleError);
 }
 
-// Edit a content control by tag
-function editContentControl(tag) {
-    Word.run(async function(context) {
-        // Get all content controls in the document
-        const contentControls = context.document.contentControls;
-        contentControls.load("items");
-        contentControls.load("items/tag");
-        
-        await context.sync();
-        
-        // Find the content control with the matching tag
-        let found = false;
-        for (let i = 0; i < contentControls.items.length; i++) {
-            if (contentControls.items[i].tag === tag) {
-                // Get the content control
-                const contentControl = contentControls.items[i];
-                
-                // Select it for editing
-                contentControl.select();
-                
-                // Customize the content control appearance to indicate editing mode
-                contentControl.appearance = Word.ContentControlAppearance.boundingBox;
-                contentControl.color = "purple";
-                
-                found = true;
-                break;
+// Live Suggestions Setup
+let suggestionTimeout = null;
+async function setupLiveSuggestions() {
+    await Word.run(async (context) => {
+        // Set up an event handler for document changes
+        Office.context.document.addHandlerAsync(
+            Office.EventType.DocumentSelectionChanged,
+            onSelectionChanged,
+            function(result) {
+                if (result.status === Office.AsyncResultStatus.Failed) {
+                    console.error('Failed to add selection changed handler:', result.error.message);
+                }
             }
-        }
-        
-        await context.sync();
-        
-        if (found) {
-            document.getElementById("selected-text").innerHTML = 
-                `<p class='success'>Now editing content control with tag "${tag}". Make your changes in the document.</p>`;
-        } else {
-            document.getElementById("selected-text").innerHTML = 
-                `<p class='error'>Control with tag "${tag}" not found.</p>`;
-        }
-    }).catch(function(error) {
-        console.log("Error: " + error);
-        document.getElementById("selected-text").innerHTML = 
-            `<p class='error'>Error editing content control: ${error.message}</p>`;
-    });
+        );
+    }).catch(handleError);
+}
+
+function onSelectionChanged(eventArgs) {
+    // Clear any pending suggestion request
+    if (suggestionTimeout) {
+        clearTimeout(suggestionTimeout);
+    }
+    
+    // Set a delay to avoid making too many API calls
+    suggestionTimeout = setTimeout(async () => {
+        await Word.run(async (context) => {
+            const selection = context.document.getSelection();
+            selection.load('text');
+            await context.sync();
+            
+            // Only suggest if the selection is a reasonable size
+            const text = selection.text;
+            if (text && text.trim() !== '' && text.length < 500) {
+                // Get quick suggestions without showing UI feedback
+                const prompt = `Provide a quick one-sentence suggestion for improving this text fragment: "${text}"`;
+                
+                const quickSuggestion = await callOpenAI(prompt, 'gpt-3.5-turbo');
+                
+                if (quickSuggestion) {
+                    document.getElementById('aiSuggestions').innerHTML = 
+                        `<div class="suggestion-item"><strong>Quick suggestion:</strong><br>${quickSuggestion}</div>`;
+                }
+            }
+        }).catch((error) => {
+            // Silently handle errors for live suggestions
+            console.error('Live suggestion error:', error);
+        });
+    }, 2000); // 2-second delay
+}
+
+// Error handling
+function handleError(error) {
+    console.error('Error:', error);
+    document.getElementById('aiSuggestions').innerHTML = 
+        `<div class="suggestion-item">Error: ${error.message}</div>`;
 }
