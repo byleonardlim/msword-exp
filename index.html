@@ -16,10 +16,38 @@
     </div>
     <div id="content-main">
         <div class="padding">
-            <button id="insert-content-control">Insert Content Control Around Selection</button>
-            <button id="wrap-paragraphs">Wrap Each Paragraph in Content Control</button>
-            <button id="highlight-controls">Highlight All Content Controls</button>
-            <button id="list-controls">List Content Controls</button>
+            <div class="section-header">
+                <h2>Selected Text</h2>
+                <p class="section-help">Highlight text in your document to see and edit it here</p>
+            </div>
+            <div id="selected-text" class="highlighted-text">
+                <p>No text currently selected. Highlight text in the document to see it here.</p>
+            </div>
+            
+            <div class="button-row">
+                <button id="insert-content-control">Wrap in Content Control</button>
+                <button id="add-critique">Add Critique</button>
+            </div>
+            
+            <div class="section-header">
+                <h2>Document Controls</h2>
+            </div>
+            <div class="button-row">
+                <button id="wrap-paragraphs">Wrap All Paragraphs</button>
+                <button id="highlight-controls">Highlight All Controls</button>
+                <button id="list-controls">List All Controls</button>
+            </div>
+            
+            <div class="section-header">
+                <h2>Critique Summary</h2>
+            </div>
+            <div id="critique-summary" class="critique-section">
+                <p>No critiques added yet.</p>
+            </div>
+            
+            <div class="section-header">
+                <h2>Content Controls</h2>
+            </div>
             <div id="control-list"></div>
         </div>
     </div>
