@@ -140,14 +140,14 @@ async function callOpenAI(prompt, model = 'gpt-4-turbo') {
                 messages: [
                     {
                         role: 'system',
-                        content: 'You are an AI writing assistant helping to improve documents.'
+                        content: 'You are a text processing tool. Respond only with the exact output requested without any explanations, introductions, or additional text. Do not use phrases like "Here is" or "Here\'s". Never explain your reasoning or add notes. Just return the exact result.'
                     },
                     {
                         role: 'user',
                         content: prompt
                     }
                 ],
-                temperature: 0.7
+                temperature: 0.3 // Lower temperature for more precise outputs
             })
         });
         
@@ -156,7 +156,7 @@ async function callOpenAI(prompt, model = 'gpt-4-turbo') {
         }
         
         const data = await response.json();
-        return data.choices[0].message.content;
+        return data.choices[0].message.content.trim();
     } catch (error) {
         document.getElementById('aiSuggestions').innerHTML = 
             `<div class="suggestion-item">Error calling OpenAI API: ${error.message}</div>`;
@@ -181,15 +181,11 @@ async function suggestChanges() {
         document.getElementById('aiSuggestions').innerHTML = 
             '<div class="suggestion-item">Analyzing your text...</div>';
         
-        const prompt = `The following is a section of text from a document. Please provide suggestions to improve clarity, style, and impact:
+        const prompt = `Improve the following text:
 
 ${text}
 
-Please provide 3-5 specific improvements, focusing on:
-1. Clarity and conciseness
-2. Grammar and punctuation
-3. Vocabulary enhancements
-4. Structural improvements`;
+Return a numbered list with exactly 3 specific improvements. Format each point as "1. [Issue]: [Suggestion]" without any introduction or conclusion.`;
         
         const suggestions = await callOpenAI(prompt);
         
@@ -201,13 +197,13 @@ Please provide 3-5 specific improvements, focusing on:
                 
             // Handle apply button
             document.getElementById('applyChanges').onclick = async () => {
-                const improvedPrompt = `Please rewrite the following text, applying the improvement suggestions:
+                const improvedPrompt = `Rewrite this text with the improvements:
 
 Original text: ${text}
 
-Suggestions: ${suggestions}
+Suggested improvements: ${suggestions}
 
-Improved version (just return the improved text without any explanations):`;
+Return ONLY the improved version with no explanation:`;
                 
                 const improvedText = await callOpenAI(improvedPrompt);
                 
@@ -240,9 +236,11 @@ async function fixGrammar() {
         document.getElementById('aiSuggestions').innerHTML = 
             '<div class="suggestion-item">Fixing grammar and spelling...</div>';
         
-        const prompt = `Please correct grammar, spelling, and punctuation in the following text. Return only the corrected text without any explanations:
+        const prompt = `Fix grammar, spelling, and punctuation in this text:
 
-${text}`;
+${text}
+
+Return ONLY the corrected text:`;
         
         const correctedText = await callOpenAI(prompt);
         
@@ -279,9 +277,11 @@ async function summarizeSelection() {
         document.getElementById('aiSuggestions').innerHTML = 
             '<div class="suggestion-item">Generating summary...</div>';
         
-        const prompt = `Please summarize the following text in 2-3 concise sentences, capturing the main points:
+        const prompt = `Summarize this text in 2-3 concise sentences:
 
-${text}`;
+${text}
+
+Return ONLY the summary:`;
         
         const summary = await callOpenAI(prompt);
         
@@ -336,13 +336,15 @@ function onSelectionChanged(eventArgs) {
             const text = selection.text;
             if (text && text.trim() !== '' && text.length < 500) {
                 // Get quick suggestions without showing UI feedback
-                const prompt = `Provide a quick one-sentence suggestion for improving this text fragment: "${text}"`;
+                const prompt = `Suggest one improvement for this text fragment: "${text}"
+
+Return ONLY a single brief suggestion without any introduction or explanation.`;
                 
                 const quickSuggestion = await callOpenAI(prompt, 'gpt-3.5-turbo');
                 
                 if (quickSuggestion) {
                     document.getElementById('aiSuggestions').innerHTML = 
-                        `<div class="suggestion-item"><strong>Quick suggestion:</strong><br>${quickSuggestion}</div>`;
+                        `<div class="suggestion-item">${quickSuggestion}</div>`;
                 }
             }
         }).catch((error) => {
