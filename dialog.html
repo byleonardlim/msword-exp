@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>API Settings</title>
+
+    <!-- Office JavaScript API -->
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+
+    <!-- Fluent UI -->
+    <link rel="stylesheet" href="https://static2.sharepointonline.com/files/fabric/office-ui-fabric-core/11.0.0/css/fabric.min.css" />
+
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            padding: 20px;
+        }
+        
+        .settings-container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+        }
+        
+        .ms-Button {
+            margin-top: 20px;
+            margin-right: 10px;
+        }
+        
+        .success-message {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #dff6dd;
+            color: #107c10;
+            border-radius: 2px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="ms-Fabric">
+    <div class="settings-container">
+        <h1 class="ms-font-xl">API Settings</h1>
+        <p>Enter your API keys below. These settings will be stored locally for this prototype.</p>
+        
+        <div class="form-group">
+            <label for="openai-api-key">OpenAI API Key</label>
+            <input type="password" id="openai-api-key" placeholder="sk-..." />
+            <small>Your API key will be stored in your browser's local storage</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="openai-model">OpenAI Model</label>
+            <input type="text" id="openai-model" placeholder="gpt-4o" />
+        </div>
+        
+        <button id="save-settings" class="ms-Button ms-Button--primary">
+            <span class="ms-Button-label">Save Settings</span>
+        </button>
+        
+        <button id="clear-settings" class="ms-Button">
+            <span class="ms-Button-label">Clear Settings</span>
+        </button>
+        
+        <div id="success-message" class="success-message">
+            Settings saved successfully!
+        </div>
+    </div>
+
+    <script>
+        // Initialize Office.js
+        Office.onReady(() => {
+            document.getElementById('save-settings').onclick = saveSettings;
+            document.getElementById('clear-settings').onclick = clearSettings;
+            
+            // Load existing settings if available
+            loadSettings();
+        });
+        
+        function loadSettings() {
+            const apiKey = localStorage.getItem('openai_api_key') || '';
+            const model = localStorage.getItem('openai_model') || 'gpt-4o';
+            
+            document.getElementById('openai-api-key').value = apiKey;
+            document.getElementById('openai-model').value = model;
+        }
+        
+        function saveSettings() {
+            const apiKey = document.getElementById('openai-api-key').value;
+            const model = document.getElementById('openai-model').value;
+            
+            localStorage.setItem('openai_api_key', apiKey);
+            localStorage.setItem('openai_model', model);
+            
+            // Show success message
+            const successMessage = document.getElementById('success-message');
+            successMessage.style.display = 'block';
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+            }, 3000);
+        }
+        
+        function clearSettings() {
+            localStorage.removeItem('openai_api_key');
+            localStorage.removeItem('openai_model');
+            
+            document.getElementById('openai-api-key').value = '';
+            document.getElementById('openai-model').value = 'gpt-4o';
+            
+            // Show success message
+            const successMessage = document.getElementById('success-message');
+            successMessage.textContent = 'Settings cleared successfully!';
+            successMessage.style.display = 'block';
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+                successMessage.textContent = 'Settings saved successfully!';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
