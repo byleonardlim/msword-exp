@@ -4,6 +4,7 @@ Office.onReady(function(info) {
         document.getElementById("insert-content-control").onclick = insertContentControlAroundSelection;
         document.getElementById("add-critique").onclick = addCritiqueToSelection;
         document.getElementById("wrap-paragraphs").onclick = wrapParagraphsInContentControls;
+        document.getElementById("wrap-by-headings").onclick = wrapContentByHeadings;
         document.getElementById("highlight-controls").onclick = highlightAllContentControls;
         document.getElementById("list-controls").onclick = listAllContentControls;
         
@@ -296,6 +297,7 @@ function wrapParagraphsInContentControls() {
         // Get all paragraphs in the document
         const paragraphs = context.document.body.paragraphs;
         paragraphs.load("text");
+        paragraphs.load("style");
         
         await context.sync();
         
@@ -324,6 +326,110 @@ function wrapParagraphsInContentControls() {
         console.log("Error: " + error);
         document.getElementById("selected-text").innerHTML = 
             `<p class='error'>Error wrapping paragraphs: ${error.message}</p>`;
+    });
+}
+
+// Detect and wrap content by heading structure
+function wrapContentByHeadings() {
+    Word.run(async function(context) {
+        // Get all paragraphs in the document
+        const paragraphs = context.document.body.paragraphs;
+        paragraphs.load("text");
+        paragraphs.load("style");
+        
+        await context.sync();
+        
+        let sectionCount = 0;
+        let currentHeadingIndex = -1;
+        let headingLevels = ['Heading 1', 'Heading 2', 'Heading 3', 'Heading 4', 'Heading 5', 'Heading 6'];
+        
+        // First pass: identify all headings
+        const headings = [];
+        for (let i = 0; i < paragraphs.items.length; i++) {
+            const para = paragraphs.items[i];
+            const styleString = para.style;
+            
+            // Check if this paragraph is a heading
+            if (headingLevels.includes(styleString)) {
+                headings.push({
+                    index: i,
+                    text: para.text,
+                    level: headingLevels.indexOf(styleString) + 1,
+                    style: styleString
+                });
+            }
+        }
+        
+        // Second pass: Create ranges from heading to the next heading or end
+        for (let i = 0; i < headings.length; i++) {
+            const currentHeading = headings[i];
+            let startParaIndex = currentHeading.index;
+            
+            // Determine where this section ends (next heading or end of document)
+            let endParaIndex;
+            if (i < headings.length - 1) {
+                endParaIndex = headings[i + 1].index - 1;
+            } else {
+                endParaIndex = paragraphs.items.length - 1;
+            }
+            
+            // If there's content between this heading and the end point
+            if (startParaIndex <= endParaIndex) {
+                // Get the range from this heading to the next heading (or end)
+                let sectionContent;
+                
+                if (startParaIndex === endParaIndex) {
+                    // Only one paragraph in this section (the heading itself)
+                    sectionContent = paragraphs.items[startParaIndex].getRange();
+                } else {
+                    // Multiple paragraphs in this section
+                    const startRange = paragraphs.items[startParaIndex].getRange();
+                    const endRange = paragraphs.items[endParaIndex].getRange();
+                    sectionContent = startRange.expandTo(endRange);
+                }
+                
+                // Create a content control for this section
+                const contentControl = sectionContent.insertContentControl();
+                
+                // Set properties based on heading level
+                contentControl.title = currentHeading.text.trim() || `Section ${i + 1}`;
+                contentControl.tag = `heading-section-${i}-level-${currentHeading.level}`;
+                
+                // Color code by heading level
+                const colors = ["#4472C4", "#ED7D31", "#A5A5A5", "#FFC000", "#5B9BD5", "#70AD47"];
+                const colorIndex = (currentHeading.level - 1) % colors.length;
+                contentControl.color = colors[colorIndex];
+                
+                // Set appearance based on heading level
+                if (currentHeading.level === 1) {
+                    contentControl.appearance = Word.ContentControlAppearance.boundingBox;
+                } else {
+                    contentControl.appearance = Word.ContentControlAppearance.tags;
+                }
+                
+                sectionCount++;
+            }
+        }
+        
+        await context.sync();
+        
+        // Update UI with results
+        if (sectionCount > 0) {
+            document.getElementById("selected-text").innerHTML = 
+                `<p class='success'>${sectionCount} sections wrapped based on headings.</p>
+                 <p>Heading 1 sections are shown with blue bounding boxes.</p>
+                 <p>Other heading levels use colored tags for easier identification.</p>`;
+        } else {
+            document.getElementById("selected-text").innerHTML = 
+                `<p class='warning'>No headings found in the document. Try applying heading styles to your titles first.</p>`;
+        }
+        
+        // Update the control list
+        listAllContentControls();
+    }).catch(function(error) {
+        console.log("Error: " + error);
+        document.getElementById("selected-text").innerHTML = 
+            `<p class='error'>Error processing document headings: ${error.message}</p>`;
     });
 }
 

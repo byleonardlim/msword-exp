@@ -140,6 +140,11 @@ button:hover {
     margin: 0;
 }
 
+.warning {
+    color: #f0ad4e;
+    margin: 0;
+}
+
 .critique-section {
     border: 1px solid #ddd;
     padding: 10px;
