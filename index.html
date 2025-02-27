@@ -3,54 +3,120 @@
 <head>
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
-    <title>Paragraph Control Add-in</title>
-    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js" type="text/javascript"></script>
-    <script src="app.js" type="text/javascript"></script>
-    <link rel="stylesheet" type="text/css" href="app.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Smart Editor Add-in</title>
+
+    <!-- Office JavaScript API -->
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+
+    <!-- For more information on Fluent UI, visit https://developer.microsoft.com/fluentui -->
+    <link rel="stylesheet" href="https://static2.sharepointonline.com/files/fabric/office-ui-fabric-core/11.0.0/css/fabric.min.css" />
+
+    <!-- Template styles -->
+    <link href="taskpane.css" rel="stylesheet" type="text/css" />
+    
+    <!-- Configuration -->
+    <script type="text/javascript" src="config.js"></script>
+    
+    <!-- Command functions -->
+    <script type="text/javascript" src="commands.js"></script>
+    
+    <!-- Functions for AI integration -->
+    <script type="text/javascript" src="functions.js"></script>
 </head>
-<body>
-    <div id="content-header">
-        <div class="padding">
-            <h1>Paragraph Control</h1>
-        </div>
+
+<body class="ms-font-m ms-Fabric">
+    <div id="container">
+        <header class="ms-bgColor-themePrimary ms-fontColor-white">
+            <h1>Smart Editor</h1>
+        </header>
+        <section id="main-content">
+            <div class="section-container">
+                <div class="ms-Grid" dir="ltr">
+                    <div class="ms-Grid-row">
+                        <div class="ms-Grid-col ms-sm12">
+                            <h2 class="ms-font-xl">Document Analysis</h2>
+                            <div class="button-row">
+                                <button id="analyze-document" class="ms-Button ms-Button--primary">
+                                    <span class="ms-Button-label">Analyze Document</span>
+                                </button>
+                                <button id="open-settings" class="ms-Button">
+                                    <span class="ms-Button-label">Settings</span>
+                                </button>
+                            </div>
+                            <div class="api-status-container">
+                                <span id="api-status">Checking API status...</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="ms-Grid-row">
+                        <div class="ms-Grid-col ms-sm12">
+                            <h3 class="ms-font-l">Spelling & Grammar</h3>
+                            <div id="spelling-results" class="results-container">
+                                <p class="placeholder-text">Click "Analyze Document" to check spelling and grammar.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="ms-Grid-row">
+                        <div class="ms-Grid-col ms-sm12">
+                            <h3 class="ms-font-l">Tone Suggestions</h3>
+                            <div id="tone-results" class="results-container">
+                                <p class="placeholder-text">Click "Analyze Document" to receive tone suggestions.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="ms-Grid-row">
+                        <div class="ms-Grid-col ms-sm12">
+                            <h2 class="ms-font-xl">Document Structure</h2>
+                            <button id="analyze-structure" class="ms-Button ms-Button--primary">
+                                <span class="ms-Button-label">Analyze Structure</span>
+                            </button>
+                            <div class="button-row">
+                                <button id="find-h1" class="ms-Button">
+                                    <span class="ms-Button-label">Find H1</span>
+                                </button>
+                                <button id="find-h2" class="ms-Button">
+                                    <span class="ms-Button-label">Find H2</span>
+                                </button>
+                                <button id="go-to-heading" class="ms-Button">
+                                    <span class="ms-Button-label">Go to Heading</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="ms-Grid-row">
+                        <div class="ms-Grid-col ms-sm12">
+                            <div id="structure-results" class="results-container">
+                                <p class="placeholder-text">Click "Analyze Structure" to view document headers and paragraphs.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="ms-Grid-row">
+                        <div class="ms-Grid-col ms-sm12">
+                            <h2 class="ms-font-xl">Formatting Tools</h2>
+                            <div class="button-row">
+                                <button id="highlight-selection" class="ms-Button">
+                                    <span class="ms-Button-label">Highlight</span>
+                                </button>
+                                <button id="add-comment" class="ms-Button">
+                                    <span class="ms-Button-label">Comment</span>
+                                </button>
+                                <button id="format-paragraph" class="ms-Button">
+                                    <span class="ms-Button-label">Format</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
-    <div id="content-main">
-        <div class="padding">
-            <div class="section-header">
-                <h2>Selected Text</h2>
-                <p class="section-help">Highlight text in your document to see and edit it here</p>
-            </div>
-            <div id="selected-text" class="highlighted-text">
-                <p>No text currently selected. Highlight text in the document to see it here.</p>
-            </div>
-            
-            <div class="button-row">
-                <button id="insert-content-control">Wrap in Content Control</button>
-                <button id="add-critique">Add Critique</button>
-            </div>
-            
-            <div class="section-header">
-                <h2>Document Controls</h2>
-            </div>
-            <div class="button-row">
-                <button id="wrap-by-headings">Wrap by Headings</button>
-                <button id="wrap-paragraphs">Wrap All Paragraphs</button>
-                <button id="highlight-controls">Highlight All Controls</button>
-                <button id="list-controls">List All Controls</button>
-            </div>
-            
-            <div class="section-header">
-                <h2>Critique Summary</h2>
-            </div>
-            <div id="critique-summary" class="critique-section">
-                <p>No critiques added yet.</p>
-            </div>
-            
-            <div class="section-header">
-                <h2>Content Controls</h2>
-            </div>
-            <div id="control-list"></div>
-        </div>
-    </div>
+
+    <script type="text/javascript" src="taskpane.js"></script>
 </body>
 </html>
