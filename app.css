@@ -60,3 +60,41 @@ html, body {
 .apply-button:hover {
     background-color: #005a9e;
 }
+
+.floating-menu {
+    position: absolute;
+    background-color: white;
+    border: 1px solid #c8c8c8;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    padding: 4px;
+    z-index: 1000;
+    display: none;
+}
+
+.floating-menu-button {
+    background-color: #f3f2f1;
+    border: none;
+    color: #323130;
+    padding: 6px 12px;
+    margin: 2px;
+    font-size: 12px;
+    border-radius: 2px;
+    cursor: pointer;
+    display: inline-block;
+    min-width: 80px;
+    text-align: center;
+}
+
+.floating-menu-button:hover {
+    background-color: #edebe9;
+}
+
+.floating-menu-button.primary {
+    background-color: #0078d4;
+    color: white;
+}
+
+.floating-menu-button.primary:hover {
+    background-color: #106ebe;
+}
