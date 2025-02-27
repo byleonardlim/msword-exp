@@ -17,7 +17,7 @@ function getApiConfiguration() {
         graph: {
             clientId: localStorage.getItem('graph_client_id') || '',
             authority: "https://login.microsoftonline.com/common",
-            redirectUri: "https://localhost:3000/taskpane.html",
+            redirectUri: "https://byleonardlim.github.io/msword-exp/taskpane.html",
             scopes: ["Files.ReadWrite"]
         }
     };
@@ -33,7 +33,7 @@ function isApiConfigured() {
 function openSettingsDialog() {
     // Display a dialog for setting API keys
     Office.context.ui.displayDialogAsync(
-        'https://localhost:3000/settings.html',
+        'https://byleonardlim.github.io/msword-exp/settings.html',
         { height: 60, width: 30, displayInIframe: true },
         function (result) {
             if (result.status === Office.AsyncResultStatus.Failed) {

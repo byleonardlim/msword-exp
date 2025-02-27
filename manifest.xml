@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <OfficeApp
   xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -6,144 +6,130 @@
   xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
   xsi:type="TaskPaneApp">
 
-  <!-- Basic Add-in Information -->
+  <!-- Basic Settings -->
   <Id>11223344-5566-7788-99AA-BBCCDDEEFF00</Id>
   <Version>1.0.0.0</Version>
-  <ProviderName>Your Company Name</ProviderName>
+  <ProviderName>Smart Editor</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="Paragraph Control" />
-  <Description DefaultValue="Control and manage paragraphs in your document" />
-  <IconUrl DefaultValue="https://your-website.com/assets/icon-32.png" />
-  <HighResolutionIconUrl DefaultValue="https://your-website.com/assets/icon-64.png" />
-  <SupportUrl DefaultValue="https://your-website.com/support" />
+  <DisplayName DefaultValue="Smart Editor Add-in" />
+  <Description DefaultValue="An add-in that enables smart editing with AI-powered suggestions and document structure analysis." />
+  <IconUrl DefaultValue="https://byleonardlim.github.io/msword-exp/assets/icon-32.png" />
+  <HighResolutionIconUrl DefaultValue="https://byleonardlim.github.io/msword-exp/assets/icon-64.png" />
+  <SupportUrl DefaultValue="https://byleonardlim.github.io/msword-exp/support.html" />
 
-  <!-- Domains that will be allowed when navigating. For example, if you use ShowTaskpane and then have an href link, navigation will only be allowed if the domain is in this list. -->
+  <!-- Domains that will be allowed when navigating -->
   <AppDomains>
-    <AppDomain>https://byleonardlim.github.io/msword-exp/</AppDomain>
+    <AppDomain>byleonardlim.github.io</AppDomain>
   </AppDomains>
 
-  <!-- Specify which Office host applications can run the add-in -->
+  <!-- Host settings -->
   <Hosts>
     <Host Name="Document" />
   </Hosts>
 
-  <!-- Specify API requirements -->
+  <!-- Required API sets -->
   <Requirements>
-    <Sets DefaultMinVersion="1.3">
-      <Set Name="WordApi" MinVersion="1.3" />
+    <Sets>
+      <Set Name="WordApi" MinVersion="1.3"/>
     </Sets>
   </Requirements>
 
-  <!-- Default settings for the add-in -->
+  <!-- Default settings -->
   <DefaultSettings>
-    <SourceLocation DefaultValue="https://byleonardlim.github.io/msword-exp/" />
+    <SourceLocation DefaultValue="https://byleonardlim.github.io/msword-exp/index.html" />
   </DefaultSettings>
 
-  <!-- Permissions needed by the add-in -->
+  <!-- Permission requirements -->
   <Permissions>ReadWriteDocument</Permissions>
 
-  <!-- Version overrides for Office 365 -->
+  <!-- Version overrides for Office 2016 and later -->
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
-    
-    <!-- Office hosts -->
+    <Requirements>
+      <bt:Sets DefaultMinVersion="1.3">
+        <bt:Set Name="WordApi" MinVersion="1.3"/>
+      </bt:Sets>
+    </Requirements>
+
     <Hosts>
       <Host xsi:type="Document">
-        
-        <!-- Form factors -->
         <DesktopFormFactor>
+          <GetStarted>
+            <Title resid="GetStarted.Title"/>
+            <Description resid="GetStarted.Description"/>
+            <LearnMoreUrl resid="GetStarted.LearnMoreUrl"/>
+          </GetStarted>
           
-          <!-- Extends the Office ribbon with custom buttons -->
+          <FunctionFile resid="Commands.Url" />
+
           <ExtensionPoint xsi:type="PrimaryCommandSurface">
-            
-            <!-- Use existing Office tab (Home tab in this example) -->
             <OfficeTab id="TabHome">
-              
-              <!-- Define custom group -->
-              <Group id="ParagraphControl.Group">
-                <Label resid="ParagraphControl.GroupLabel" />
-                <Icon>
-                  <bt:Image size="16" resid="ParagraphControl.Icon16" />
-                  <bt:Image size="32" resid="ParagraphControl.Icon32" />
-                  <bt:Image size="80" resid="ParagraphControl.Icon80" />
-                </Icon>
+              <Group id="SmartEditor.Group">
+                <Label resid="SmartEditor.GroupLabel" />
                 
-                <!-- Define button for opening the task pane -->
-                <Control xsi:type="Button" id="ParagraphControl.TaskpaneButton">
-                  <Label resid="ParagraphControl.TaskpaneButtonLabel" />
+                <Control xsi:type="Button" id="SmartEditor.TaskpaneButton">
+                  <Label resid="SmartEditor.TaskpaneButton.Label" />
                   <Supertip>
-                    <Title resid="ParagraphControl.TaskpaneButtonTooltipTitle" />
-                    <Description resid="ParagraphControl.TaskpaneButtonTooltipDescription" />
+                    <Title resid="SmartEditor.TaskpaneButton.Label" />
+                    <Description resid="SmartEditor.TaskpaneButton.Tooltip" />
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="ParagraphControl.Icon16" />
-                    <bt:Image size="32" resid="ParagraphControl.Icon32" />
-                    <bt:Image size="80" resid="ParagraphControl.Icon80" />
+                    <bt:Image size="16" resid="SmartEditor.Icon.16" />
+                    <bt:Image size="32" resid="SmartEditor.Icon.32" />
+                    <bt:Image size="80" resid="SmartEditor.Icon.80" />
                   </Icon>
-                  
-                  <!-- Action when button is clicked: Show the task pane -->
                   <Action xsi:type="ShowTaskpane">
                     <TaskpaneId>ButtonId1</TaskpaneId>
-                    <SourceLocation resid="ParagraphControl.TaskpaneUrl" />
+                    <SourceLocation resid="SmartEditor.Taskpane.Url" />
                   </Action>
                 </Control>
-                
-                <!-- Add additional commands as needed -->
-                <Control xsi:type="Button" id="ParagraphControl.WrapButton">
-                  <Label resid="ParagraphControl.WrapButtonLabel" />
+
+                <Control xsi:type="Button" id="SmartEditor.AnalyzeButton">
+                  <Label resid="SmartEditor.AnalyzeButton.Label" />
                   <Supertip>
-                    <Title resid="ParagraphControl.WrapButtonTooltipTitle" />
-                    <Description resid="ParagraphControl.WrapButtonTooltipDescription" />
+                    <Title resid="SmartEditor.AnalyzeButton.Label" />
+                    <Description resid="SmartEditor.AnalyzeButton.Tooltip" />
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="ParagraphControl.WrapIcon16" />
-                    <bt:Image size="32" resid="ParagraphControl.WrapIcon32" />
-                    <bt:Image size="80" resid="ParagraphControl.WrapIcon80" />
+                    <bt:Image size="16" resid="SmartEditor.AnalyzeIcon.16" />
+                    <bt:Image size="32" resid="SmartEditor.AnalyzeIcon.32" />
+                    <bt:Image size="80" resid="SmartEditor.AnalyzeIcon.80" />
                   </Icon>
-                  
-                  <!-- Execute function when button is clicked -->
                   <Action xsi:type="ExecuteFunction">
-                    <FunctionName>wrapSelectedParagraph</FunctionName>
+                    <FunctionName>analyzeDocument</FunctionName>
                   </Action>
                 </Control>
-                
               </Group>
             </OfficeTab>
           </ExtensionPoint>
-          
-          <!-- Function file integration for ExecuteFunction actions -->
-          <FunctionFile resid="ParagraphControl.FunctionFile" />
         </DesktopFormFactor>
       </Host>
     </Hosts>
-    
-    <!-- Resources used by the add-in (strings, URLs, icons) -->
+
     <Resources>
       <bt:Images>
-        <bt:Image id="ParagraphControl.Icon16" DefaultValue="https://byleonardlim.github.io/msword-exp/assets/icon-16.png" />
-        <bt:Image id="ParagraphControl.Icon32" DefaultValue="https://byleonardlim.github.io/msword-exp/assets/icon-32.png" />
-        <bt:Image id="ParagraphControl.Icon80" DefaultValue="https://byleonardlim.github.io/msword-exp/assets/icon-80.png" />
-        <bt:Image id="ParagraphControl.WrapIcon16" DefaultValue="https://byleonardlim.github.io/msword-exp/assets/wrap-16.png" />
-        <bt:Image id="ParagraphControl.WrapIcon32" DefaultValue="https://byleonardlim.github.io/msword-exp/assets/wrap-32.png" />
-        <bt:Image id="ParagraphControl.WrapIcon80" DefaultValue="https://byleonardlim.github.io/msword-exp/assets/wrap-80.png" />
+        <bt:Image id="SmartEditor.Icon.16" DefaultValue="https://byleonardlim.github.io/msword-exp/assets/icon-16.png" />
+        <bt:Image id="SmartEditor.Icon.32" DefaultValue="https://byleonardlim.github.io/msword-exp/assets/icon-32.png" />
+        <bt:Image id="SmartEditor.Icon.80" DefaultValue="https://byleonardlim.github.io/msword-exp/assets/icon-80.png" />
+        <bt:Image id="SmartEditor.AnalyzeIcon.16" DefaultValue="https://byleonardlim.github.io/msword-exp/assets/analyze-16.png" />
+        <bt:Image id="SmartEditor.AnalyzeIcon.32" DefaultValue="https://byleonardlim.github.io/msword-exp/assets/analyze-32.png" />
+        <bt:Image id="SmartEditor.AnalyzeIcon.80" DefaultValue="https://byleonardlim.github.io/msword-exp/assets/analyze-80.png" />
       </bt:Images>
-      
       <bt:Urls>
-        <bt:Url id="ParagraphControl.TaskpaneUrl" DefaultValue="https://byleonardlim.github.io/msword-exp/" />
-        <bt:Url id="ParagraphControl.FunctionFile" DefaultValue="https://byleonardlim.github.io/msword-exp/" />
+        <bt:Url id="SmartEditor.Taskpane.Url" DefaultValue="https://byleonardlim.github.io/msword-exp/index.html" />
+        <bt:Url id="Commands.Url" DefaultValue="https://byleonardlim.github.io/msword-exp/commands.html" />
+        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://byleonardlim.github.io/msword-exp/help.html" />
       </bt:Urls>
-      
       <bt:ShortStrings>
-        <bt:String id="ParagraphControl.GroupLabel" DefaultValue="Paragraph Control" />
-        <bt:String id="ParagraphControl.TaskpaneButtonLabel" DefaultValue="Paragraph Tools" />
-        <bt:String id="ParagraphControl.TaskpaneButtonTooltipTitle" DefaultValue="Paragraph Control Tools" />
-        <bt:String id="ParagraphControl.WrapButtonLabel" DefaultValue="Wrap Paragraph" />
-        <bt:String id="ParagraphControl.WrapButtonTooltipTitle" DefaultValue="Wrap in Content Control" />
+        <bt:String id="GetStarted.Title" DefaultValue="Get started with Smart Editor" />
+        <bt:String id="SmartEditor.GroupLabel" DefaultValue="Smart Editor" />
+        <bt:String id="SmartEditor.TaskpaneButton.Label" DefaultValue="Smart Editor" />
+        <bt:String id="SmartEditor.AnalyzeButton.Label" DefaultValue="Analyze Document" />
       </bt:ShortStrings>
-      
       <bt:LongStrings>
-        <bt:String id="ParagraphControl.TaskpaneButtonTooltipDescription" DefaultValue="Open the Paragraph Control task pane to manage and control paragraphs in your document." />
-        <bt:String id="ParagraphControl.WrapButtonTooltipDescription" DefaultValue="Wrap the selected paragraph in a content control for easy management." />
+        <bt:String id="GetStarted.Description" DefaultValue="Smart Editor is now loaded. Go to the HOME tab and click the 'Smart Editor' button to get started." />
+        <bt:String id="SmartEditor.TaskpaneButton.Tooltip" DefaultValue="Open Smart Editor to enhance your document" />
+        <bt:String id="SmartEditor.AnalyzeButton.Tooltip" DefaultValue="Analyze your document for improvements" />
       </bt:LongStrings>
-    </Resources>    
+    </Resources>
   </VersionOverrides>
 </OfficeApp>
