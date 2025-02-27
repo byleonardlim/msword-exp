@@ -33,7 +33,7 @@ function isApiConfigured() {
 function openSettingsDialog() {
     // Display a dialog for setting API keys
     Office.context.ui.displayDialogAsync(
-        'https://byleonardlim.github.io/msword-exp/settings.html',
+        'https://byleonardlim.github.io/msword-exp/dialog.html',
         { height: 60, width: 30, displayInIframe: true },
         function (result) {
             if (result.status === Office.AsyncResultStatus.Failed) {
