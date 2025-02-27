@@ -15,9 +15,6 @@ Office.onReady((info) => {
         
         // Enable live suggestions as user types
         setupLiveSuggestions();
-        
-        // Initialize floating menu
-        initFloatingMenu();
     }
 });
 
