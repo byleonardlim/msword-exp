@@ -288,13 +288,13 @@ ${text}`;
         if (summary) {
             document.getElementById('aiSuggestions').innerHTML = 
                 `<div class="suggestion-item">Summary:<br><br>${summary.replace(/\n/g, '<br>')}</div>
-                <button class="apply-button" id="insertSummary">Insert Summary</button>`;
+                <button class="apply-button" id="insertSummary">Replace with Summary</button>`;
                 
             document.getElementById('insertSummary').onclick = async () => {
                 await Word.run(async (context) => {
-                    // Insert summary as a comment
+                    // Replace selected text with summary
                     const selection = context.document.getSelection();
-                    selection.insertComment(summary);
+                    selection.insertText(summary, 'Replace');
                     await context.sync();
                 }).catch(handleError);
             };
