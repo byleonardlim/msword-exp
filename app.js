@@ -78,7 +78,8 @@ async function loadDocumentStructure() {
                     headings.push({
                         index: i,
                         text: paragraph.text,
-                        level: level
+                        level: level,
+                        isExpanded: true // Default to expanded
                     });
                 }
             }
@@ -93,19 +94,38 @@ async function loadDocumentStructure() {
             for (let i = 0; i < headings.length; i++) {
                 const heading = headings[i];
                 
+                // Create container for heading and toggle button
+                const headingContainer = document.createElement('div');
+                headingContainer.className = 'heading-container';
+                
+                // Add toggle button
+                const toggleButton = document.createElement('button');
+                toggleButton.className = 'toggle-button';
+                toggleButton.innerHTML = heading.isExpanded ? '−' : '+'; // Minus or plus sign
+                toggleButton.title = heading.isExpanded ? 'Collapse section' : 'Expand section';
+                toggleButton.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent triggering the heading click
+                    toggleSection(heading.index, heading.level, headings, i);
+                });
+                
+                // Create heading item
                 const headingItem = document.createElement('div');
                 headingItem.className = `heading-item heading-h${heading.level}`;
                 headingItem.innerText = heading.text || '[Empty Heading]';
                 
                 // Store paragraph index as data attribute
                 headingItem.dataset.paragraphIndex = heading.index;
+                headingItem.dataset.headingIndex = i;
                 
                 // Add click handler to select content
                 headingItem.addEventListener('click', () => {
                     navigateToHeading(heading.index, heading.level, headings);
                 });
                 
-                headingsTree.appendChild(headingItem);
+                // Add elements to container
+                headingContainer.appendChild(toggleButton);
+                headingContainer.appendChild(headingItem);
+                headingsTree.appendChild(headingContainer);
             }
             
             // Add refresh button
@@ -121,6 +141,78 @@ async function loadDocumentStructure() {
         console.error('Error loading document structure:', error);
         document.getElementById('headingsTree').innerHTML = 
             `<div class="error">Error loading document structure: ${error.message}</div>`;
+    }
+}
+
+// Toggle section visibility (expand/collapse)
+async function toggleSection(paragraphIndex, headingLevel, headings, headingArrayIndex) {
+    try {
+        // Toggle the expanded state
+        const isExpanded = !headings[headingArrayIndex].isExpanded;
+        headings[headingArrayIndex].isExpanded = isExpanded;
+        
+        // Update the toggle button
+        const toggleButton = document.querySelector(`.heading-container:nth-child(${headingArrayIndex + 1}) .toggle-button`);
+        if (toggleButton) {
+            toggleButton.innerHTML = isExpanded ? '−' : '+';
+            toggleButton.title = isExpanded ? 'Collapse section' : 'Expand section';
+        }
+        
+        await Word.run(async (context) => {
+            // Get all paragraphs
+            const paragraphs = context.document.body.paragraphs;
+            paragraphs.load(['text', 'style', 'styleBuiltIn']);
+            
+            await context.sync();
+            
+            // Find the section's end index
+            let endIndex = paragraphs.items.length - 1;
+            
+            // Find the next heading of same or higher level
+            for (let i = headingArrayIndex + 1; i < headings.length; i++) {
+                if (headings[i].level <= headingLevel) {
+                    endIndex = headings[i].index - 1;
+                    break;
+                }
+            }
+            
+            // Get the paragraphs to show/hide (exclude the heading itself)
+            const startIndex = paragraphIndex + 1;
+            
+            if (startIndex <= endIndex) {
+                // Style to use for hiding/showing
+                const hiddenStyle = context.document.styles.add("HiddenContent");
+                hiddenStyle.font.color = "white"; // Make text white (invisible on white background)
+                hiddenStyle.font.size = 1; // Very small size
+                hiddenStyle.hidden = true; // Use Word's hidden text feature
+                
+                // Apply or remove the style to each paragraph in the section
+                for (let i = startIndex; i <= endIndex; i++) {
+                    if (i < paragraphs.items.length) {
+                        const paragraph = paragraphs.items[i];
+                        
+                        // Skip headings within this section (we don't want to hide them)
+                        const isHeading = paragraph.styleBuiltIn && 
+                                         (paragraph.styleBuiltIn >= Word.Style.heading1 && 
+                                          paragraph.styleBuiltIn <= Word.Style.heading6);
+                        
+                        if (!isHeading) {
+                            if (!isExpanded) {
+                                // Hide paragraph
+                                paragraph.style = "HiddenContent";
+                            } else {
+                                // Restore paragraph (use Normal style if no specific style)
+                                paragraph.style = "Normal";
+                            }
+                        }
+                    }
+                }
+            }
+            
+            await context.sync();
+        });
+    } catch (error) {
+        console.error('Error toggling section:', error);
     }
 }
 
@@ -175,6 +267,95 @@ async function navigateToHeading(paragraphIndex, headingLevel, headings) {
         
         await context.sync();
     }).catch(handleError);
+}
+
+// Alternative approach using content controls
+async function toggleSectionWithContentControls(paragraphIndex, headingLevel, headings, headingArrayIndex) {
+    try {
+        // Toggle the expanded state
+        const isExpanded = !headings[headingArrayIndex].isExpanded;
+        headings[headingArrayIndex].isExpanded = isExpanded;
+        
+        // Update the toggle button
+        const toggleButton = document.querySelector(`.heading-container:nth-child(${headingArrayIndex + 1}) .toggle-button`);
+        if (toggleButton) {
+            toggleButton.innerHTML = isExpanded ? '−' : '+';
+            toggleButton.title = isExpanded ? 'Collapse section' : 'Expand section';
+        }
+        
+        await Word.run(async (context) => {
+            // Get the section content control if it exists
+            const contentControls = context.document.contentControls;
+            contentControls.load("items");
+            await context.sync();
+            
+            // Look for existing content control for this section
+            let sectionControl = null;
+            const controlTag = `section-${paragraphIndex}`;
+            
+            for (let i = 0; i < contentControls.items.length; i++) {
+                if (contentControls.items[i].tag === controlTag) {
+                    sectionControl = contentControls.items[i];
+                    break;
+                }
+            }
+            
+            // If we don't have a content control for this section yet, create one
+            if (!sectionControl && !isExpanded) {
+                // Get all paragraphs
+                const paragraphs = context.document.body.paragraphs;
+                paragraphs.load(['text', 'style', 'styleBuiltIn']);
+                
+                await context.sync();
+                
+                // Find the section's end index
+                let endIndex = paragraphs.items.length - 1;
+                
+                // Find the next heading of same or higher level
+                for (let i = headingArrayIndex + 1; i < headings.length; i++) {
+                    if (headings[i].level <= headingLevel) {
+                        endIndex = headings[i].index - 1;
+                        break;
+                    }
+                }
+                
+                // Get the paragraphs to wrap (exclude the heading itself)
+                const startIndex = paragraphIndex + 1;
+                
+                if (startIndex <= endIndex) {
+                    // Create a range from start to end paragraphs
+                    const startParagraph = paragraphs.items[startIndex];
+                    const endParagraph = paragraphs.items[endIndex];
+                    
+                    const startRange = startParagraph.getRange("Start");
+                    const endRange = endParagraph.getRange("End");
+                    
+                    startRange.expandTo(endRange);
+                    
+                    // Insert a content control around the section
+                    sectionControl = startRange.insertContentControl();
+                    sectionControl.tag = controlTag;
+                    sectionControl.title = "Section Content";
+                    sectionControl.appearance = "BoundingBox";
+                    
+                    // Collapse the control
+                    sectionControl.appearance = "Hidden";
+                }
+            } 
+            // If we have a control and need to expand it
+            else if (sectionControl && isExpanded) {
+                // Show the content control
+                sectionControl.appearance = "BoundingBox";
+                
+                // Optional: Delete the content control but keep its contents
+                sectionControl.delete(true);
+            }
+            
+            await context.sync();
+        });
+    } catch (error) {
+        console.error('Error toggling section with content controls:', error);
+    }
 }
 
 // Update the UI to highlight the selected heading
