@@ -18,6 +18,9 @@ Office.onReady((info) => {
         
         // Enable live suggestions as user types
         setupLiveSuggestions();
+        
+        // Add button to insert document canvas selection buttons
+        addInsertSelectionButtonsButton();
     }
 });
 
