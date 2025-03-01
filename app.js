@@ -13,6 +13,9 @@ Office.onReady((info) => {
         // Load document structure
         loadDocumentStructure();
         
+        // Setup document change tracking
+        setupDocumentChangeTracking();
+        
         // Enable live suggestions as user types
         setupLiveSuggestions();
     }
@@ -46,42 +49,82 @@ function getApiKey() {
 
 // Document Structure Navigation
 async function loadDocumentStructure() {
-    await Word.run(async (context) => {
-        // Get all headings in the document
-        const headingsParagraphs = context.document.body.paragraphs;
-        headingsParagraphs.load('text, style');
-        
-        await context.sync();
-        
-        const headingsTree = document.getElementById('headingsTree');
-        headingsTree.innerHTML = '';
-        
-        // Process paragraphs to find headings
-        for (let i = 0; i < headingsParagraphs.items.length; i++) {
-            const paragraph = headingsParagraphs.items[i];
-            const style = paragraph.style;
+    try {
+        await Word.run(async (context) => {
+            // Get all headings in the document
+            const paragraphs = context.document.body.paragraphs;
+            paragraphs.load(['text', 'style', 'styleBuiltIn']);
             
-            // Check if paragraph is a heading (Heading 1-6)
-            if (style && style.includes('Heading')) {
-                const headingLevel = parseInt(style.replace('Heading ', ''));
-                if (!isNaN(headingLevel) && headingLevel >= 1 && headingLevel <= 6) {
-                    // Create heading item in the tree
-                    const headingItem = document.createElement('div');
-                    headingItem.className = `heading-item heading-h${headingLevel}`;
-                    headingItem.innerText = paragraph.text;
-                    headingItem.dataset.paragraphIndex = i;
+            await context.sync();
+            
+            const headingsTree = document.getElementById('headingsTree');
+            headingsTree.innerHTML = '';
+            
+            // Store heading info with their levels and indexes
+            const headings = [];
+            
+            // Process paragraphs to find headings
+            for (let i = 0; i < paragraphs.items.length; i++) {
+                const paragraph = paragraphs.items[i];
+                
+                // Check if paragraph is a heading using styleBuiltIn property
+                if (paragraph.styleBuiltIn && 
+                    (paragraph.styleBuiltIn >= Word.Style.heading1 && 
+                     paragraph.styleBuiltIn <= Word.Style.heading6)) {
                     
-                    // Add click event to navigate to the heading
-                    headingItem.onclick = () => navigateToHeading(i);
+                    // Calculate heading level (1-6)
+                    const level = paragraph.styleBuiltIn - Word.Style.heading1 + 1;
                     
-                    headingsTree.appendChild(headingItem);
+                    headings.push({
+                        index: i,
+                        text: paragraph.text,
+                        level: level
+                    });
                 }
             }
-        }
-    }).catch(handleError);
+            
+            // If no headings found, show a message
+            if (headings.length === 0) {
+                headingsTree.innerHTML = '<div class="no-headings">No headings found in document. Add headings to enable navigation.</div>';
+                return;
+            }
+            
+            // Build the heading tree UI
+            for (let i = 0; i < headings.length; i++) {
+                const heading = headings[i];
+                
+                const headingItem = document.createElement('div');
+                headingItem.className = `heading-item heading-h${heading.level}`;
+                headingItem.innerText = heading.text || '[Empty Heading]';
+                
+                // Store paragraph index as data attribute
+                headingItem.dataset.paragraphIndex = heading.index;
+                
+                // Add click handler to select content
+                headingItem.addEventListener('click', () => {
+                    navigateToHeading(heading.index, heading.level, headings);
+                });
+                
+                headingsTree.appendChild(headingItem);
+            }
+            
+            // Add refresh button
+            const refreshButton = document.createElement('button');
+            refreshButton.className = 'ms-Button';
+            refreshButton.innerHTML = '<span class="ms-Button-label">Refresh Structure</span>';
+            refreshButton.onclick = loadDocumentStructure;
+            
+            // Add the refresh button to the top of the headings container
+            headingsTree.parentElement.insertBefore(refreshButton, headingsTree);
+        });
+    } catch (error) {
+        console.error('Error loading document structure:', error);
+        document.getElementById('headingsTree').innerHTML = 
+            `<div class="error">Error loading document structure: ${error.message}</div>`;
+    }
 }
 
-async function navigateToHeading(paragraphIndex) {
+async function navigateToHeading(paragraphIndex, headingLevel, headings) {
     await Word.run(async (context) => {
         const paragraphs = context.document.body.paragraphs;
         paragraphs.load('text');
@@ -89,34 +132,88 @@ async function navigateToHeading(paragraphIndex) {
         await context.sync();
         
         if (paragraphIndex < paragraphs.items.length) {
-            // Select the paragraph
-            paragraphs.items[paragraphIndex].select();
+            // Find the ending paragraph
+            let endIndex = -1;
             
-            // Find all paragraphs until the next heading or end of document
-            let endIndex = paragraphIndex + 1;
-            while (endIndex < paragraphs.items.length) {
-                const nextParagraph = paragraphs.items[endIndex];
-                const style = nextParagraph.style;
-                
-                if (style && style.includes('Heading')) {
+            // Find the next heading of same or higher level
+            for (const heading of headings) {
+                if (heading.index > paragraphIndex && heading.level <= headingLevel) {
+                    endIndex = heading.index - 1;
                     break;
                 }
-                
-                endIndex++;
+            }
+            
+            // If no next heading found, select to the end of the document
+            if (endIndex === -1) {
+                endIndex = paragraphs.items.length - 1;
             }
             
             // Select the range from heading to next heading (or end)
-            if (endIndex > paragraphIndex + 1) {
-                const range = paragraphs.items[paragraphIndex].getRange();
-                const rangeEnd = paragraphs.items[endIndex - 1].getRange('End');
+            const startParagraph = paragraphs.items[paragraphIndex];
+            startParagraph.select();
+            
+            // If we need to select more than one paragraph
+            if (endIndex > paragraphIndex) {
+                // Get the range of the first paragraph
+                const range = startParagraph.getRange();
                 
-                range.expandTo(rangeEnd);
+                // Get the range of the last paragraph
+                const endParagraph = paragraphs.items[endIndex];
+                const endRange = endParagraph.getRange('End');
+                
+                // Expand the selection from start to end
+                range.expandTo(endRange);
                 range.select();
             }
+            
+            // Scroll the selected content into view
+            startParagraph.getRange().scrollIntoView();
+            
+            // Update UI to highlight selected heading
+            updateSelectedHeadingUI(paragraphIndex);
         }
         
         await context.sync();
     }).catch(handleError);
+}
+
+// Update the UI to highlight the selected heading
+function updateSelectedHeadingUI(selectedIndex) {
+    // Remove existing selection highlight
+    const headingItems = document.querySelectorAll('.heading-item');
+    headingItems.forEach(item => {
+        item.classList.remove('selected');
+    });
+    
+    // Add highlight to the selected heading
+    const selectedItem = document.querySelector(`.heading-item[data-paragraphIndex="${selectedIndex}"]`);
+    if (selectedItem) {
+        selectedItem.classList.add('selected');
+        selectedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+// Setup document change tracking to refresh structure
+function setupDocumentChangeTracking() {
+    // Debounce function to limit updates
+    function debounce(func, wait) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    }
+    
+    // Listen for document changes that might affect headings
+    Office.context.document.addHandlerAsync(
+        Office.EventType.DocumentSelectionChanged,
+        debounce(() => {
+            // Only refresh occasionally to avoid performance issues
+            if (Math.random() < 0.1) { // 10% chance to refresh
+                loadDocumentStructure();
+            }
+        }, 2000)
+    );
 }
 
 // OpenAI Integration
