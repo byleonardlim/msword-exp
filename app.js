@@ -1,9 +1,151 @@
-// Office.js initialization
+// Handle URL parameters for context menu actions
+function handleUrlParameters() {
+    try {
+        // Parse URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const action = urlParams.get('action');
+        const text = urlParams.get('text');
+        
+        // If we have both action and text parameters
+        if (action && text) {
+            // Hide the main UI and show a processing message
+            document.getElementById('container').style.display = 'none';
+            
+            // Create a simple UI for processing context menu actions
+            const processingDiv = document.createElement('div');
+            processingDiv.id = 'processingDiv';
+            processingDiv.style.padding = '20px';
+            processingDiv.style.textAlign = 'center';
+            
+            // Add processing message
+            const message = document.createElement('p');
+            message.innerText = `Processing ${action === 'fixGrammar' ? 'grammar fix' : 'summarization'}...`;
+            processingDiv.appendChild(message);
+            
+            // Add to body
+            document.body.appendChild(processingDiv);
+            
+            // Perform the requested action
+            if (action === 'fixGrammar') {
+                processGrammarFix(text);
+            } else if (action === 'summarize') {
+                processSummarization(text);
+            }
+        }
+    } catch (error) {
+        console.error('Error handling URL parameters:', error);
+    }
+}
+
+// Process grammar fix from context menu
+async function processGrammarFix(text) {
+    try {
+        const processingDiv = document.getElementById('processingDiv');
+        processingDiv.innerHTML = '<p>Fixing grammar and spelling...</p>';
+        
+        const prompt = `Fix grammar, spelling, and punctuation in this text:
+
+${text}
+
+Return ONLY the corrected text:`;
+        
+        const correctedText = await callOpenAI(prompt);
+        
+        if (correctedText) {
+            // Show the result
+            processingDiv.innerHTML = `
+                <p>Grammar fixed successfully:</p>
+                <div style="text-align: left; background-color: #f5f5f5; padding: 10px; margin: 10px; border-left: 3px solid #0078d4;">
+                    ${correctedText.replace(/\n/g, '<br>')}
+                </div>
+                <div style="margin-top: 15px;">
+                    <button id="applyButton" style="background-color: #0078d4; color: white; border: none; padding: 8px 16px; cursor: pointer; margin-right: 10px;">Apply Changes</button>
+                    <button id="cancelButton" style="background-color: #f3f2f1; border: 1px solid #8a8886; padding: 8px 16px; cursor: pointer;">Cancel</button>
+                </div>
+            `;
+            
+            // Add event handlers
+            document.getElementById('applyButton').addEventListener('click', function() {
+                // Send the corrected text back to the parent window
+                Office.context.ui.messageParent(JSON.stringify({
+                    correctedText: correctedText
+                }));
+            });
+            
+            document.getElementById('cancelButton').addEventListener('click', function() {
+                Office.context.ui.messageParent('{"cancelled": true}');
+            });
+        } else {
+            processingDiv.innerHTML = `
+                <p>Error fixing grammar. Please try again.</p>
+                <button id="closeButton" style="background-color: #f3f2f1; border: 1px solid #8a8886; padding: 8px 16px; cursor: pointer; margin-top: 10px;">Close</button>
+            `;
+            
+            document.getElementById('closeButton').addEventListener('click', function() {
+                Office.context.ui.messageParent('{"cancelled": true}');
+            });
+        }
+    } catch (error) {
+        console.error('Error processing grammar fix:', error);
+    }
+}
+
+// Process summarization from context menu
+async function processSummarization(text) {
+    try {
+        const processingDiv = document.getElementById('processingDiv');
+        processingDiv.innerHTML = '<p>Generating summary...</p>';
+        
+        const prompt = `Summarize this text in 2-3 concise sentences:
+
+${text}
+
+Return ONLY the summary:`;
+        
+        const summary = await callOpenAI(prompt);
+        
+        if (summary) {
+            // Show the result
+            processingDiv.innerHTML = `
+                <p>Summary generated successfully:</p>
+                <div style="text-align: left; background-color: #f5f5f5; padding: 10px; margin: 10px; border-left: 3px solid #0078d4;">
+                    ${summary.replace(/\n/g, '<br>')}
+                </div>
+                <div style="margin-top: 15px;">
+                    <button id="applyButton" style="background-color: #0078d4; color: white; border: none; padding: 8px 16px; cursor: pointer; margin-right: 10px;">Replace with Summary</button>
+                    <button id="cancelButton" style="background-color: #f3f2f1; border: 1px solid #8a8886; padding: 8px 16px; cursor: pointer;">Cancel</button>
+                </div>
+            `;
+            
+            // Add event handlers
+            document.getElementById('applyButton').addEventListener('click', function() {
+                // Send the summary text back to the parent window
+                Office.context.ui.messageParent(JSON.stringify({
+                    summaryText: summary
+                }));
+            });
+            
+            document.getElementById('cancelButton').addEventListener('click', function() {
+                Office.context.ui.messageParent('{"cancelled": true}');
+            });
+        } else {
+            processingDiv.innerHTML = `
+                <p>Error generating summary. Please try again.</p>
+                <button id="closeButton" style="background-color: #f3f2f1; border: 1px solid #8a8886; padding: 8px 16px; cursor: pointer; margin-top: 10px;">Close</button>
+            `;
+            
+            document.getElementById('closeButton').addEventListener('click', function() {
+                Office.context.ui.messageParent('{"cancelled": true}');
+            });
+        }
+    } catch (error) {
+        console.error('Error processing summarization:', error);
+    }
+}// Office.js initialization
 Office.onReady((info) => {
     if (info.host === Office.HostType.Word) {
         // Initialize event handlers
         document.getElementById('saveApiKey').onclick = saveApiKey;
-        document.getElementById('suggestChanges').onclick = suggestChanges;
         document.getElementById('fixGrammar').onclick = fixGrammar;
         document.getElementById('summarizeSelection').onclick = summarizeSelection;
         
@@ -21,6 +163,10 @@ Office.onReady((info) => {
         
         // Add button to insert document canvas selection buttons
         addInsertSelectionButtonsButton();
+        
+        // Check if we need to perform an action based on URL parameters
+        // (for context menu integration)
+        handleUrlParameters();
     }
 });
 
