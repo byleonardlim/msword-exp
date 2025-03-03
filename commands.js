@@ -20,44 +20,30 @@
                 
                 // If there's selected text, process it
                 if (selectedText && selectedText.trim() !== '') {
-                    // Show the task pane to display results
-                    Office.context.ui.displayDialogAsync(
-                        window.location.origin + "/index.html?action=fixGrammar&text=" + encodeURIComponent(selectedText), 
-                        { height: 60, width: 35, displayInIframe: true },
-                        function (result) {
-                            if (result.status === Office.AsyncResultStatus.Succeeded) {
-                                // Dialog is open
-                                const dialog = result.value;
-                                
-                                // Handle messages from the dialog
-                                dialog.addEventHandler(Office.EventType.DialogMessageReceived, function (args) {
-                                    try {
-                                        const message = JSON.parse(args.message);
-                                        
-                                        // If we receive corrected text, replace the selection
-                                        if (message.correctedText) {
-                                            Office.context.document.setSelectedDataAsync(
-                                                message.correctedText,
-                                                { coercionType: Office.CoercionType.Text },
-                                                function (result) {
-                                                    if (result.status === Office.AsyncResultStatus.Succeeded) {
-                                                        console.log('Text replaced successfully');
-                                                    } else {
-                                                        console.error('Error replacing text:', result.error);
-                                                    }
-                                                    
-                                                    // Close the dialog
-                                                    dialog.close();
-                                                }
-                                            );
+                    // Show the task pane
+                    Office.context.ui.displayTaskpaneAsync().then(function() {
+                        // Use the same AI action as in the task pane
+                        Office.actions.invoke("FIX_GRAMMAR", {
+                            text: selectedText
+                        }).then(function(result) {
+                            if (result.correctedText) {
+                                // Replace the selected text with the corrected version
+                                Office.context.document.setSelectedDataAsync(
+                                    result.correctedText,
+                                    { coercionType: Office.CoercionType.Text },
+                                    function (result) {
+                                        if (result.status === Office.AsyncResultStatus.Succeeded) {
+                                            console.log('Text replaced successfully');
+                                        } else {
+                                            console.error('Error replacing text:', result.error);
                                         }
-                                    } catch (e) {
-                                        console.error('Error processing message:', e);
                                     }
-                                });
+                                );
                             }
-                        }
-                    );
+                        }).catch(function(error) {
+                            console.error('Error processing grammar fix:', error);
+                        });
+                    });
                 } else {
                     // Notify if no text is selected
                     Office.context.ui.displayDialogAsync(
