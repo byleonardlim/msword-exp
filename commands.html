@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    
+    <!-- Office JavaScript API -->
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+    
+    <script>
+        // Make sure Office.js is initialized
+        Office.onReady(function(info) {
+            if (info.host === Office.HostType.Word) {
+                // Register our functions to handle context menu clicks
+                Office.actions.associate("fixGrammarContextMenu", fixGrammarContextMenu);
+                Office.actions.associate("summarizeContextMenu", summarizeContextMenu);
+            }
+        });
+
+        // Function to handle Fix Grammar context menu action
+        async function fixGrammarContextMenu(event) {
+            try {
+                // Get the selected text
+                await Word.run(async (context) => {
+                    const range = context.document.getSelection();
+                    range.load("text");
+                    await context.sync();
+                    
+                    // Get the selected text
+                    const selectedText = range.text;
+
+                    // TODO: Implement your grammar fixing logic here
+                    // For now, we'll just show that the function was called
+                    console.log("Fix grammar called for text:", selectedText);
+                    
+                    // Example: Show a dialog to confirm the action
+                    Office.context.ui.displayDialogAsync('https://byleonardlim.github.io/msword-exp/dialog.html', 
+                        { height: 30, width: 20 });
+                });
+            } catch (error) {
+                console.error("Error in fixGrammarContextMenu:", error);
+            }
+        }
+
+        // Function to handle Summarize context menu action
+        async function summarizeContextMenu(event) {
+            try {
+                // Get the selected text
+                await Word.run(async (context) => {
+                    const range = context.document.getSelection();
+                    range.load("text");
+                    await context.sync();
+                    
+                    // Get the selected text
+                    const selectedText = range.text;
+
+                    // TODO: Implement your summarization logic here
+                    // For now, we'll just show that the function was called
+                    console.log("Summarize called for text:", selectedText);
+                    
+                    // Example: Show a dialog to confirm the action
+                    Office.context.ui.displayDialogAsync('https://byleonardlim.github.io/msword-exp/dialog.html', 
+                        { height: 30, width: 20 });
+                });
+            } catch (error) {
+                console.error("Error in summarizeContextMenu:", error);
+            }
+        }
+    </script>
+</head>
+<body>
+    <!-- This page intentionally left blank -->
+</body>
+</html>

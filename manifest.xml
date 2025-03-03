@@ -35,33 +35,41 @@
                         <LearnMoreUrl resid="GetStarted.LearnMoreUrl"/>
                     </GetStarted>
                     <FunctionFile resid="Commands.Url" />
-                    <ExtensionPoint xsi:type="PrimaryCommandSurface">
-                        <OfficeTab id="TabHome">
-                            <Group id="AIGroup">
-                                <Label resid="AIGroup.Label" />
+                    <ExtensionPoint xsi:type="ContextMenu">
+                        <OfficeMenu id="ContextMenuText">
+                            <Control xsi:type="Button" id="ContextMenuButton1">
+                                <Label resid="ContextMenu.Grammar" />
+                                <Supertip>
+                                    <Title resid="ContextMenu.Grammar" />
+                                    <Description resid="ContextMenu.GrammarDesc" />
+                                </Supertip>
                                 <Icon>
                                     <bt:Image size="16" resid="Icon.16x16" />
                                     <bt:Image size="32" resid="Icon.32x32" />
                                     <bt:Image size="80" resid="Icon.80x80" />
                                 </Icon>
-                                <Control xsi:type="Button" id="TaskpaneButton">
-                                    <Label resid="TaskpaneButton.Label" />
-                                    <Supertip>
-                                        <Title resid="TaskpaneButton.Label" />
-                                        <Description resid="TaskpaneButton.Tooltip" />
-                                    </Supertip>
-                                    <Icon>
-                                        <bt:Image size="16" resid="Icon.16x16" />
-                                        <bt:Image size="32" resid="Icon.32x32" />
-                                        <bt:Image size="80" resid="Icon.80x80" />
-                                    </Icon>
-                                    <Action xsi:type="ShowTaskpane">
-                                        <TaskpaneId>ButtonId1</TaskpaneId>
-                                        <SourceLocation resid="Taskpane.Url" />
-                                    </Action>
-                                </Control>
-                            </Group>
-                        </OfficeTab>
+                                <Action xsi:type="ExecuteFunction">
+                                    <FunctionName>fixGrammarContextMenu</FunctionName>
+                                </Action>
+                            </Control>
+                            <Control xsi:type="Button" id="ContextMenuButton2">
+                                <Label resid="ContextMenu.Summarize" />
+                                <Supertip>
+                                    <Title resid="ContextMenu.Summarize" />
+                                    <Description resid="ContextMenu.SummarizeDesc" />
+                                </Supertip>
+                                <Icon>
+                                    <bt:Image size="16" resid="Icon.16x16" />
+                                    <bt:Image size="32" resid="Icon.32x32" />
+                                    <bt:Image size="80" resid="Icon.80x80" />
+                                </Icon>
+                                <Action xsi:type="ExecuteFunction">
+                                    <FunctionName>summarizeContextMenu</FunctionName>
+                                </Action>
+                            </Control>
+                        </OfficeMenu>
+                        <!-- Add this menu item scope -->
+                        <Item Type="Text"/>
                     </ExtensionPoint>
                 </DesktopFormFactor>
             </Host>
@@ -94,43 +102,8 @@
                 <bt:String id="GetStarted.Description" DefaultValue="Get started with AI Writing Assistant to enhance your documents." />
                 <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Open AI Writing Assistant" />
                 <bt:String id="ContextMenu.GrammarDesc" DefaultValue="Automatically fix grammar and spelling errors in selection" />
-               <bt:String id="ContextMenu.SummarizeDesc" DefaultValue="Create a concise summary of the selected text" />
+                <bt:String id="ContextMenu.SummarizeDesc" DefaultValue="Create a concise summary of the selected text" />
             </bt:LongStrings>
         </Resources>
-        <!-- Context Menu Extensions -->
-        <ExtensionPoint xsi:type="ContextMenu">
-            <OfficeMenu id="ContextMenuText">
-                <Control xsi:type="Button" id="ContextMenuButton1">
-                    <Label resid="ContextMenu.Grammar" />
-                    <Supertip>
-                        <Title resid="ContextMenu.Grammar" />
-                        <Description resid="ContextMenu.GrammarDesc" />
-                    </Supertip>
-                    <Icon>
-                        <bt:Image size="16" resid="Icon.16x16" />
-                        <bt:Image size="32" resid="Icon.32x32" />
-                        <bt:Image size="80" resid="Icon.80x80" />
-                    </Icon>
-                    <Action xsi:type="ExecuteFunction">
-                        <FunctionName>fixGrammarContextMenu</FunctionName>
-                    </Action>
-                </Control>
-                <Control xsi:type="Button" id="ContextMenuButton2">
-                    <Label resid="ContextMenu.Summarize" />
-                    <Supertip>
-                        <Title resid="ContextMenu.Summarize" />
-                        <Description resid="ContextMenu.SummarizeDesc" />
-                    </Supertip>
-                    <Icon>
-                        <bt:Image size="16" resid="Icon.16x16" />
-                        <bt:Image size="32" resid="Icon.32x32" />
-                        <bt:Image size="80" resid="Icon.80x80" />
-                    </Icon>
-                    <Action xsi:type="ExecuteFunction">
-                        <FunctionName>summarizeContextMenu</FunctionName>
-                    </Action>
-                </Control>
-            </OfficeMenu>
-        </ExtensionPoint>
     </VersionOverrides>
 </OfficeApp>
