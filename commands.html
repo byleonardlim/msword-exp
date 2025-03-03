@@ -26,16 +26,20 @@
                     range.load("text");
                     await context.sync();
                     
-                    // Get the selected text
                     const selectedText = range.text;
-
-                    // TODO: Implement your grammar fixing logic here
-                    // For now, we'll just show that the function was called
-                    console.log("Fix grammar called for text:", selectedText);
                     
-                    // Example: Show a dialog to confirm the action
-                    Office.context.ui.displayDialogAsync('https://byleonardlim.github.io/msword-exp/dialog.html', 
-                        { height: 30, width: 20 });
+                    // Show the task pane
+                    await Office.context.ui.displayTaskpaneAsync();
+                    
+                    // Use the same AI action as in the task pane
+                    const result = await Office.actions.invoke("FIX_GRAMMAR", {
+                        text: selectedText
+                    });
+                    
+                    if (result && result.correctedText) {
+                        range.insertText(result.correctedText, 'Replace');
+                        await context.sync();
+                    }
                 });
             } catch (error) {
                 console.error("Error in fixGrammarContextMenu:", error);
@@ -51,16 +55,20 @@
                     range.load("text");
                     await context.sync();
                     
-                    // Get the selected text
                     const selectedText = range.text;
-
-                    // TODO: Implement your summarization logic here
-                    // For now, we'll just show that the function was called
-                    console.log("Summarize called for text:", selectedText);
                     
-                    // Example: Show a dialog to confirm the action
-                    Office.context.ui.displayDialogAsync('https://byleonardlim.github.io/msword-exp/dialog.html', 
-                        { height: 30, width: 20 });
+                    // Show the task pane
+                    await Office.context.ui.displayTaskpaneAsync();
+                    
+                    // Use the same AI action as in the task pane
+                    const result = await Office.actions.invoke("SUMMARIZE_TEXT", {
+                        text: selectedText
+                    });
+                    
+                    if (result && result.summaryText) {
+                        range.insertText(result.summaryText, 'Replace');
+                        await context.sync();
+                    }
                 });
             } catch (error) {
                 console.error("Error in summarizeContextMenu:", error);
