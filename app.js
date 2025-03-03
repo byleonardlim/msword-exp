@@ -160,10 +160,7 @@ Office.onReady((info) => {
         
         // Enable live suggestions as user types
         setupLiveSuggestions();
-        
-        // Add button to insert document canvas selection buttons
-        addInsertSelectionButtonsButton();
-        
+                
         // Check if we need to perform an action based on URL parameters
         // (for context menu integration)
         handleUrlParameters();
